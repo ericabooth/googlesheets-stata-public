@@ -37,7 +37,7 @@ googlesheets addsheet,    spreadsheet("...") title("New tab")
 ## Install
 
 ```stata
-net install googlesheets, from("https://raw.githubusercontent.com/ericbooth/googlesheets-stata/master/") replace
+net install googlesheets, from("https://raw.githubusercontent.com/ericabooth/googlesheets-stata/master/") replace
 which googlesheets
 help googlesheets
 ```
