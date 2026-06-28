@@ -1,0 +1,47 @@
+v 3
+d googlesheets. Read, write, and edit Google Sheets directly from Stata.
+d
+d googlesheets mirrors the import excel / export excel / putexcel family,
+d but talks to live Google Sheets via the Sheets API.  Surgical placement
+d of values and matrices, on-demand cell formatting, sheet (tab)
+d management, and filtered reads of Google Forms response sheets.
+d
+d Subcommands:
+d   import, export, put, format, list, ping,
+d   addsheet, deletesheet, renamesheet.
+d
+d Requires: Stata 17+, Python 3 on PATH, an OAuth 2.0 Desktop client JSON
+d (one-time GCP setup; see README).  The package creates a private Python
+d venv on first run and installs the Google client libraries into it.
+d
+d KW: google sheets
+d KW: spreadsheets
+d KW: import
+d KW: export
+d KW: putexcel
+d KW: api
+d KW: oauth
+d KW: forms
+d
+d Author: Eric A. Booth, Texas 2036
+d Support: eric.booth@texas2036.org
+d Distribution-Date: 20260627
+d
+f googlesheets.ado
+f googlesheets.sthlp
+f googlesheets_auth.ado
+f googlesheets_runpy.ado
+f googlesheets_ping.ado
+f googlesheets_list.ado
+f googlesheets_import.ado
+f googlesheets_export.ado
+f googlesheets_put.ado
+f googlesheets_format.ado
+f googlesheets_addsheet.ado
+f googlesheets_deletesheet.ado
+f googlesheets_renamesheet.ado
+f googlesheets_addchart.ado
+f googlesheets_helper.py
+f _gs_jesc.ado
+f _gs_field.ado
+f _gs_outfield.ado

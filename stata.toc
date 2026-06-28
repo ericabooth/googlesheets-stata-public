@@ -1,0 +1,3 @@
+v 3
+d googlesheets: Read, write, and edit Google Sheets from Stata -- mirrors import excel / export excel / putexcel
+p googlesheets
