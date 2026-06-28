@@ -36,23 +36,13 @@ googlesheets addsheet,    spreadsheet("...") title("New tab")
 
 ## Install
 
-### Path A: SSC-style install from a clone
-
 ```stata
-net install googlesheets, from("/path/to/googlesheets-stata-public") replace
+net install googlesheets, from("https://raw.githubusercontent.com/ericbooth/googlesheets-stata/master/") replace
 which googlesheets
+help googlesheets
 ```
 
-The package ships `googlesheets.pkg` and `stata.toc` for this purpose.
-
-### Path B: `adopath ++` from a clone
-
-```stata
-adopath ++ "/absolute/path/to/googlesheets-stata-public"
-which googlesheets
-```
-
-Use the absolute path, not `~` — Stata's `shell` passes a quoted tilde without expanding it, and the bundled Python helper would fail to launch.
+The package ships `googlesheets.pkg` and `stata.toc` so Stata's installer picks up the ado files, the Python helper, and the helpfile in one call. No manual `adopath` step is needed.
 
 ## One-time auth setup
 
@@ -190,4 +180,4 @@ The shipped [test_googlesheets.do](test_googlesheets.do) is a 100-line end-to-en
 
 ## Author and license
 
-Authored by Eric Booth (Texas 2036), 2026. MIT-licensed. Built atop the Google Sheets API; not affiliated with Google.
+Eric A. Booth, Sr Researcher, Texas2036.org (eric.a.booth@gmail.com). MIT-licensed. Built atop the Google Sheets API; not affiliated with or endorsed by Google.
