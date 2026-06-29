@@ -1,6 +1,6 @@
-# googlesheets
+# googlesheets  - a Stata and Google Sheets connector
 
-**Read, write, and edit Google Sheets directly from Stata.** Mirrors the `import excel` / `export excel` / `putexcel` family, but talks to live Google Sheets via the Sheets API.
+**Read, write, and edit Google Sheets directly from Stata.** It mirrors the `import excel` / `export excel` / `putexcel` family of Stata syntax, but interacts with live Google Sheets via the Sheets API (and Drive API if on Pro Google Account). Include commands to place figures and live Google Charts into Google Sheets. 
 
 ```stata
 googlesheets ping,        spreadsheet("https://docs.google.com/spreadsheets/d/.../edit")
