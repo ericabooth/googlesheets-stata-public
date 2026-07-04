@@ -259,6 +259,36 @@ def _build_range(sheet, rng):
     raise ValueError("Either sheet() or range() must be supplied.")
 
 
+def _parse_dt(s, fmts):
+    from datetime import datetime
+    for f in fmts:
+        try:
+            return datetime.strptime(s, f)
+        except ValueError:
+            continue
+    return None
+
+
+def _since_ge(cell, threshold):
+    """True if cell >= threshold, comparing as numbers or datetimes when both
+    sides parse that way, else as strings.  A naive string compare is wrong for
+    timestamps because Google returns dates with unpadded hours (e.g.
+    '2026-07-04 9:00:00'), so '9' sorts after '12'; parsing to datetime fixes
+    it, and numeric parsing keeps since() correct for ratings, counts, and ids."""
+    a, b = str(cell), str(threshold)
+    try:
+        return float(a) >= float(b)
+    except ValueError:
+        pass
+    _FMTS = ("%Y-%m-%d %H:%M:%S", "%Y-%m-%d %H:%M", "%Y-%m-%d",
+             "%m/%d/%Y %H:%M:%S", "%m/%d/%Y %H:%M", "%m/%d/%Y",
+             "%Y/%m/%d %H:%M:%S", "%Y/%m/%d")
+    da, db = _parse_dt(a, _FMTS), _parse_dt(b, _FMTS)
+    if da is not None and db is not None:
+        return da >= db
+    return a >= b
+
+
 def cmd_read_range(args, sheets, drive):
     spreadsheet_id = parse_spreadsheet_id(args["spreadsheet"])
     a1 = _build_range(args.get("sheet"), args.get("range"))
@@ -283,7 +313,8 @@ def cmd_read_range(args, sheets, drive):
                 col_idx = header.index(col_spec)
             except ValueError:
                 raise ValueError(f"since(column='{col_spec}'): column not found in header row")
-        body = [row for row in values[1:] if len(row) > col_idx and str(row[col_idx]) >= str(threshold)]
+        body = [row for row in values[1:]
+                if len(row) > col_idx and _since_ge(row[col_idx], threshold)]
         values = [header] + body
 
     tail = args.get("tail")
@@ -722,7 +753,27 @@ def cmd_add_chart(args, sheets, drive):
     }
 
 
+def cmd_create_spreadsheet(args, sheets, drive):
+    """Create a new spreadsheet in the user's Drive; optionally name its first
+    tab via 'sheet_title'.  Returns the new spreadsheetId and spreadsheetUrl so
+    the caller can immediately write to it."""
+    title = args.get("title") or "Untitled spreadsheet"
+    body = {"properties": {"title": title}}
+    if args.get("sheet_title"):
+        body["sheets"] = [{"properties": {"title": args["sheet_title"]}}]
+    resp = sheets.spreadsheets().create(
+        body=body,
+        fields="spreadsheetId,spreadsheetUrl,properties.title",
+    ).execute()
+    return {
+        "spreadsheetId":  resp["spreadsheetId"],
+        "spreadsheetUrl": resp.get("spreadsheetUrl", ""),
+        "title":          resp.get("properties", {}).get("title", title),
+    }
+
+
 SUBCOMMANDS = {
+    "create_spreadsheet": cmd_create_spreadsheet,
     "ping":           cmd_ping,
     "read_range":     cmd_read_range,
     "write_range":    cmd_write_range,

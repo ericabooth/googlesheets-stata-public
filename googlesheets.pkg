@@ -25,11 +25,12 @@ d KW: forms
 d
 d Author: Eric A. Booth, Sr Researcher, Texas2036.org
 d Support: eric.a.booth@gmail.com
-d Distribution-Date: 20260627
+d Distribution-Date: 20260704
 d
 f googlesheets.ado
 f googlesheets.sthlp
 f googlesheets_auth.ado
+f googlesheets_create.ado
 f googlesheets_runpy.ado
 f googlesheets_ping.ado
 f googlesheets_list.ado

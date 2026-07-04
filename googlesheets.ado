@@ -1,4 +1,4 @@
-*! googlesheets v0.1.0  2026-06-27
+*! googlesheets v0.1.1  2026-07-04
 *! Stata wrapper for the Google Sheets API.
 *!
 *! Read, write, and structurally edit Google Sheets from Stata, the way
@@ -13,6 +13,7 @@
 *!     googlesheets put         using "<id-or-url>" , cell() ...
 *!     googlesheets list                            , spreadsheet()
 *!     googlesheets ping                            , spreadsheet()
+*!     googlesheets create                          , title() [sheettitle()]
 *!     googlesheets addsheet                        , spreadsheet() title()
 *!     googlesheets deletesheet                     , spreadsheet() title()
 *!     googlesheets renamesheet                     , spreadsheet() ...
@@ -31,13 +32,13 @@ program define googlesheets
     gettoken sub 0 : 0, parse(", ")
     if "`sub'" == "" {
         display as error "googlesheets: missing subcommand"
-        display as error "  Valid: import | export | put | list | ping | addsheet"
+        display as error "  Valid: create | import | export | put | list | ping | addsheet"
         display as error "         | deletesheet | renamesheet | format"
         display as error "  See {bf:help googlesheets}."
         exit 198
     }
     local sub = lower(strtrim("`sub'"))
-    local _valid "import export put list ping addsheet deletesheet renamesheet format addchart help"
+    local _valid "create import export put list ping addsheet deletesheet renamesheet format addchart help"
     if !`:list sub in _valid' {
         display as error "googlesheets: unknown subcommand '`sub''"
         display as error "  Valid: `_valid'"

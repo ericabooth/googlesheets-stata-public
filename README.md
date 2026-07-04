@@ -27,6 +27,7 @@ googlesheets addsheet,    spreadsheet("...") title("New tab")
 | `list` | List the tab names | n/a |
 | `addsheet` / `deletesheet` / `renamesheet` | Tab management | n/a |
 | `ping` | OAuth / API connectivity check | n/a |
+| `create` | Make a new spreadsheet in your Drive (returns its id / URL) | n/a |
 
 ## Why use it
 
@@ -130,7 +131,17 @@ googlesheets import using "..." , sheet("Form Responses 1") firstrow clear ///
     since(Timestamp=2026-01-01)
 ```
 
-`since(column=value)` keeps rows where the named column is `>=` the value. Works with timestamps, ISO dates, integers, or string codes.
+`since(column=value)` keeps rows where the named column is `>=` the value. It compares dates and numbers as such rather than as text, so the filter stays correct even when Google returns a timestamp with an unpadded hour (e.g. `2026-07-04 9:00:00`), integers, or string codes.
+
+### Create a fresh spreadsheet from Stata
+
+```stata
+googlesheets create, title("My report") sheettitle("Data")
+display "`r(url)'"          // open the new sheet in a browser
+global SS "`r(url)'"        // reuse it in every later command
+```
+
+`create` makes a brand-new spreadsheet in your Drive and returns its id in `r(id)` and its URL in `r(url)`, so a script can build a report from nothing without first opening a browser.
 
 ### Write a Stata summary table to a new tab
 

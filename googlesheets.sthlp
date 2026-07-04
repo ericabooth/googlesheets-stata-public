@@ -25,6 +25,7 @@
 {p2col :{cmd:addchart}}insert a chart object (column / bar / line / area / pie / donut){p_end}
 {p2col :{cmd:list}}list the sheet (tab) names in a spreadsheet{p_end}
 {p2col :{cmd:ping}}confirm OAuth + API access against a target spreadsheet{p_end}
+{p2col :{cmd:create}}create a new spreadsheet in the user's Drive (returns its id / URL){p_end}
 {p2col :{cmd:addsheet}}add a new tab{p_end}
 {p2col :{cmd:deletesheet}}delete a tab by title{p_end}
 {p2col :{cmd:renamesheet}}rename a tab{p_end}
