@@ -38,9 +38,7 @@ googlesheets addsheet,    spreadsheet("...") title("New tab")
 ## Install
 
 ```stata
-net install googlesheets, from("https://raw.githubusercontent.com/ericabooth/googlesheets-stata-public/master/") replace
-discard
-which googlesheets
+net install googlesheets, from("https://raw.githubusercontent.com/ericabooth/googlesheets-stata-public/main/") replace force
 help googlesheets
 ```
 
