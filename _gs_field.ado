@@ -10,6 +10,7 @@
 *!   local title `"`r(value)'"'
 
 program define _gs_field, rclass
+version 17.0
     syntax , CONTENT(string) KEY(string)
 
     local _val ""

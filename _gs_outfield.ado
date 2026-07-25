@@ -12,6 +12,7 @@
 *!   local title `"`r(value)'"'
 
 program define _gs_outfield, rclass
+version 17.0
     syntax , SRC(string) KEY(string)
 
     tempname jh

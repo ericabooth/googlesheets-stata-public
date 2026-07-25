@@ -12,6 +12,7 @@
 *! avoids drift if (when) the escape rules change.
 
 program define _gs_jesc, rclass
+version 17.0
     syntax , [ RAW(string) ]
     local s `"`raw'"'
     local s : subinstr local s `"\"' `"\\"', all
