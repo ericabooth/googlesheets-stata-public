@@ -354,5 +354,5 @@ the browser again; click Allow and you're back.{p_end}
 
 {title:Author and license}
 
-{phang}Authored by Eric A. Booth, Sr Researcher, Texas2036.org (eric.a.booth@gmail.com), 2026.  MIT-licensed.  Built atop
+{phang}Authored by Eric A. Booth, Sr Researcher, Texas 2036 (eric.a.booth@gmail.com), 2026.  MIT-licensed.  Built atop
 the Google Sheets API; this package is not affiliated with Google.{p_end}

@@ -190,4 +190,4 @@ The shipped [test_googlesheets.do](test_googlesheets.do) is a 100-line end-to-en
 
 ## Author and license
 
-Eric A. Booth, Sr Researcher, Texas2036.org (eric.a.booth@gmail.com). MIT-licensed. Built atop the Google Sheets API; not affiliated with or endorsed by Google.
+Eric A. Booth, Sr Researcher, Texas 2036 (eric.a.booth@gmail.com). MIT-licensed. Built atop the Google Sheets API; not affiliated with or endorsed by Google.
