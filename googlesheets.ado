@@ -32,7 +32,7 @@ program define googlesheets
     gettoken sub 0 : 0, parse(", ")
     if "`sub'" == "" {
         display as error "googlesheets: missing subcommand"
-        display as error "  Valid: create | import | export | put | list | ping | addsheet"
+        display as error "  Valid: create | import | export | put | format | addchart | list | ping | addsheet"
         display as error "         | deletesheet | renamesheet | format"
         display as error "  See {bf:help googlesheets}."
         exit 198

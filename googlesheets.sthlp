@@ -67,13 +67,13 @@
      {cmd:wrap}]{p_end}
 
 {phang}{cmd:googlesheets addchart using} {it:"<id-or-url>"} {cmd:,}
-    {cmdab:sh:eet(}{it:source}{cmd:)} {cmd:type(}{it:column|bar|stacked_bar|line|area|pie|donut}{cmd:)}
+    {cmdab:sh:eet(}{it:source}{cmd:)} {cmd:type(}{it:column|bar|stacked_column|stacked_bar|line|area|scatter|pie|donut}{cmd:)}
     {cmdab:dom:ain(}{it:A2:A6}{cmd:)} {cmd:series(}{it:B2:B6}|{it:C2:C6}|...{cmd:)}
     [{cmd:names(}{it:"label1|label2|..."}{cmd:)}
      {cmd:colors(}{it:"#1B2D55|#D44500|..."}{cmd:)}
      {cmd:title(}{it:"..."}{cmd:)}
      {cmd:xlabel(}{it:"..."}{cmd:)} {cmd:ylabel(}{it:"..."}{cmd:)}
-     {cmd:legendpos(}{it:top|right|bottom|left|none}{cmd:)}
+     {cmd:legendpos(}{it:top|right|bottom|left|none|labeled}{cmd:)}   (default {cmd:bottom})
      {cmd:tx2036style}
      {cmd:piehole(}{it:0.5}{cmd:)}
      {cmd:targetsheet(}{it:name}{cmd:)} {cmd:anchor(}{it:H1}{cmd:)}
@@ -354,5 +354,5 @@ the browser again; click Allow and you're back.{p_end}
 
 {title:Author and license}
 
-{phang}Authored by Eric A. Booth, Sr Researcher, Texas 2036 (eric.a.booth@gmail.com), 2026.  MIT-licensed.  Built atop
+{phang}Authored by Eric A. Booth, Sr Researcher, Texas2036.org (eric.a.booth@gmail.com), 2026.  MIT-licensed.  Built atop
 the Google Sheets API; this package is not affiliated with Google.{p_end}

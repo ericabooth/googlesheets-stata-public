@@ -3,7 +3,6 @@
 *!   googlesheets list, spreadsheet("<id-or-url>") [keyfile() tokenfile() verbose]
 *! Returns:
 *!   r(sheets) -- pipe-separated list of tab titles
-*!   r(title)  -- the spreadsheet name
 
 program define googlesheets_list, rclass
     version 17.0
