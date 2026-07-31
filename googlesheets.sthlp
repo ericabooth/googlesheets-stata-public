@@ -321,8 +321,8 @@ string ISO dates) and integer/string codes.{p_end}
 
 {pstd}For column-equality filters, importing the whole sheet and applying
 Stata's {cmd:if} clause is simplest.  For very large response sheets,
-combine {cmd:since()} + {cmd:tail()} server-side so you never download more
-than you need.{p_end}
+combine {cmd:since()} + {cmd:tail()} so that no more rows than you asked
+for enter Stata (the helper filters the reply before loading it).{p_end}
 
 
 {marker tips}{...}
