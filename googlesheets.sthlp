@@ -1,5 +1,5 @@
 {smcl}
-{* *! googlesheets v0.2.0  2026-06-28}{...}
+{* *! googlesheets v0.1.2  2026-07-31}{...}
 {cmd:help googlesheets}{...}
 {viewerjumpto "Syntax"      "googlesheets##syntax"}{...}
 {viewerjumpto "Subcommands" "googlesheets##subcommands"}{...}
@@ -53,7 +53,7 @@
 
 {phang}{cmd:googlesheets put using} {it:"<id-or-url>"} {cmd:,}
     {cmdab:sh:eet(}{it:name}{cmd:)} {cmd:cell(}{it:A1}{cmd:)}
-    (one of {cmd:value(}{it:#}{cmd:)} {cmd:string(}{it:text}{cmd:)} {cmd:formula(}{it:=...}{cmd:)} {cmd:matrix(}{it:M}{cmd:)}){p_end}
+    (one of {cmd:value(}{it:#}{cmd:)} {cmd:string(}{it:text}{cmd:)} {cmd:formula(}{it:=...}{cmd:)} {cmd:matrix(}{it:M}{cmd:)}) [{cmd:names}]{p_end}
 
 {phang}{cmd:googlesheets format using} {it:"<id-or-url>"} {cmd:,}
     {cmdab:sh:eet(}{it:name}{cmd:)} {cmd:range(}{it:A1:E1}{cmd:)}
@@ -233,10 +233,10 @@ display the computed result.{p_end}
 
 {phang}{cmd}correlate price mpg weight length{p_end}
 {phang}{cmd}matrix C = r(C){p_end}
-{phang}{cmd}googlesheets put using "$SS", sheet("Auto") cell(O6) matrix(C){p_end}
+{phang}{cmd}googlesheets put using "$SS", sheet("Auto") cell(O6) matrix(C) names{p_end}
 
 {pstd}{cmd:matrix(M)} writes a {it:rowsof(M)} x {it:colsof(M)} block starting
-at the given cell.  Missing values become blank cells.  Numbers are written
+at the given cell.  Missing values become blank cells.  Add {cmd:names} to write the matrix's row and column names as well: the column names go in a header row and the row names in the column to their left.  Numbers are written
 as numbers (USER_ENTERED parsing applies, so Sheets stores them as numeric).{p_end}
 
 
