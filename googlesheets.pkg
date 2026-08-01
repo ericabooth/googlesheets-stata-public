@@ -11,7 +11,7 @@ d   import, export, put, format, list, ping,
 d   addsheet, deletesheet, renamesheet.
 d
 d Requires: Stata 17+, Python 3 on PATH, an OAuth 2.0 Desktop client JSON
-d (one-time GCP setup; see README).  The package creates a private Python
+d (one-time GCP setup; see the One-time setup section of -help googlesheets-).  The package creates a private Python
 d venv on first run and installs the Google client libraries into it.
 d
 d KW: google sheets
