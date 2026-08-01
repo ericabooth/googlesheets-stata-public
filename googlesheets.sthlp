@@ -151,14 +151,15 @@ Google client libraries into it.  The user's system Python is left untouched.{p_
 {phang}{cmd}googlesheets ping, spreadsheet("$GS_TEST_SHEET"){p_end}
 
 {marker brand}{...}
-{title:Brand styling}
+{title:Styling a chart or a range}
 
-{pstd}The {cmd:tx2036style} option on {cmd:addchart} applies a brand palette
-({bf:#1B2D55} navy, {bf:#D44500} orange, {bf:#2B6CB0} link blue, {bf:#6C7A8D}
-muted gray, {bf:#7A9D54} sage) plus a Montserrat title in {bf:#1B2D55}.
-The same palette is what {cmd:format} expects when you call it manually:{p_end}
+{pstd}Pass explicit hex codes to {cmd:colors()} on {cmd:addchart}, and to
+{cmd:bgcolor()} / {cmd:fgcolor()} on {cmd:format}, to style a chart or a cell
+range yourself.  The {cmd:tx2036style} option is a shortcut that applies one
+fixed house style (a Montserrat title in navy plus a matching series palette)
+if you publish under it.  A manual call looks like this:{p_end}
 
-{phang}{cmd}googlesheets format using "..."  , sheet("Auto") range("A1:M1") ///{p_end}
+{phang}{cmd}googlesheets format using "..."  , sheet("Auto") range("A1:L1") ///{p_end}
 {phang}{cmd}    bgcolor("#1B2D55") fgcolor("#FFFFFF") bold font("Montserrat") fontsize(12){p_end}
 
 {marker examples}{...}
@@ -198,7 +199,7 @@ and the Sheet has no header.{p_end}
 
 {dlgtab:3.  Brand-style the header row}
 
-{phang}{cmd}googlesheets format using "$SS", sheet("Auto") range("A1:M1") ///{p_end}
+{phang}{cmd}googlesheets format using "$SS", sheet("Auto") range("A1:L1") ///{p_end}
 {phang}{cmd}    bgcolor("#1B2D55") fgcolor("#FFFFFF") bold font("Montserrat") fontsize(12){p_end}
 
 {pstd}Applies the navy / white / Montserrat / 12pt / bold treatment.  Useful
@@ -207,8 +208,8 @@ above any range, not just headers (e.g. highlighting a totals row).{p_end}
 
 {dlgtab:4.  Format a numeric column as a percentage / currency}
 
-{phang}{cmd}googlesheets format using "$SS", sheet("Auto") range("E2:E75") numfmt("0%"){p_end}
-{phang}{cmd}googlesheets format using "$SS", sheet("Auto") range("D2:D75") numfmt(`""$"#,##0"'){p_end}
+{phang}{cmd}googlesheets format using "$SS", sheet("Auto") range("C2:C75") numfmt("0.0"){p_end}
+{phang}{cmd}googlesheets format using "$SS", sheet("Auto") range("B2:B75") numfmt("\$#,##0"){p_end}
 
 {pstd}{cmd:numfmt()} accepts any Sheets number-format pattern: {bf:0.0%},
 {bf:#,##0.00}, {bf:yyyy-mm-dd}, {bf:[h]:mm:ss}, etc.  The pattern is applied
@@ -221,7 +222,7 @@ to every cell in the range.{p_end}
 {phang}{cmd}googlesheets put using "$SS", sheet("Auto") cell(O2) string("Run date: `=c(current_date)'"){p_end}
 {phang}{cmd}summarize price{p_end}
 {phang}{cmd}googlesheets put using "$SS", sheet("Auto") cell(O3) value(`=r(mean)'){p_end}
-{phang}{cmd}googlesheets put using "$SS", sheet("Auto") cell(O4) formula("=AVERAGE(D2:D75)"){p_end}
+{phang}{cmd}googlesheets put using "$SS", sheet("Auto") cell(O4) formula("=AVERAGE(B2:B75)"){p_end}
 
 {pstd}{cmd:value(#)} writes a number.  {cmd:string("text")} writes text
 verbatim.  {cmd:formula("=...")} writes a Sheets formula -- the cell will
@@ -242,46 +243,46 @@ as numbers (USER_ENTERED parsing applies, so Sheets stores them as numeric).{p_e
 {dlgtab:7.  Insert a chart from the data on the Sheet}
 
 {phang}{cmd}googlesheets addchart using "$SS", sheet("Auto") type(column) ///{p_end}
-{phang}{cmd}    domain(B2:B75) series(D2:D75)        ///{p_end}
-{phang}{cmd}    names("Price")                       ///{p_end}
-{phang}{cmd}    title("Price by make")              ///{p_end}
-{phang}{cmd}    xlabel("Make")  ylabel("Price (USD)") ///{p_end}
-{phang}{cmd}    tx2036style legendpos(NONE)          ///{p_end}
+{phang}{cmd}    domain(A2:A75) series(B2:B75)                             ///{p_end}
+{phang}{cmd}    names("Price")                                            ///{p_end}
+{phang}{cmd}    title("Price by make")                                    ///{p_end}
+{phang}{cmd}    xlabel("Make")  ylabel("Price (USD)")                     ///{p_end}
+{phang}{cmd}    legendpos(NONE)                                           ///{p_end}
 {phang}{cmd}    targetsheet("Auto") anchor(O15) width(640) height(360){p_end}
 
 {phang}Multi-series example -- price by gear ratio and weight:{p_end}
 
-{phang}{cmd}googlesheets addchart using "$SS", sheet("Auto") type(scatter)  ///{p_end}
-{phang}{cmd}    domain(L2:L75)                                              ///{p_end}
-{phang}{cmd}    series(D2:D75)                                              ///{p_end}
-{phang}{cmd}    names("Price")                                              ///{p_end}
-{phang}{cmd}    title("Price vs gear ratio")                                ///{p_end}
-{phang}{cmd}    xlabel("Gear ratio") ylabel("Price")                        ///{p_end}
-{phang}{cmd}    tx2036style legendpos(NONE)                                 ///{p_end}
+{phang}{cmd}googlesheets addchart using "$SS", sheet("Auto") type(scatter) ///{p_end}
+{phang}{cmd}    domain(K2:K75)                                             ///{p_end}
+{phang}{cmd}    series(B2:B75)                                             ///{p_end}
+{phang}{cmd}    names("Price")                                             ///{p_end}
+{phang}{cmd}    title("Price vs gear ratio")                               ///{p_end}
+{phang}{cmd}    xlabel("Gear ratio") ylabel("Price")                       ///{p_end}
+{phang}{cmd}    legendpos(NONE)                                            ///{p_end}
 {phang}{cmd}    targetsheet("Auto") anchor(O35) width(560) height(360){p_end}
 
 {phang}Diverging-style stacked bar across categories (Sheets has no native
 diverging chart; this stacks normally with a red-to-blue palette):{p_end}
 
 {phang}{cmd}googlesheets addchart using "$SS", sheet("Auto") type(stacked_bar) ///{p_end}
-{phang}{cmd}    domain(B2:B11) series(D2:D11)                                  ///{p_end}
+{phang}{cmd}    domain(A2:A11) series(B2:B11)                                  ///{p_end}
 {phang}{cmd}    names("Price")                                                 ///{p_end}
 {phang}{cmd}    colors("#10487F") title("First 10 makes")                      ///{p_end}
-{phang}{cmd}    tx2036style legendpos(NONE)                                    ///{p_end}
+{phang}{cmd}    legendpos(NONE)                                                ///{p_end}
 {phang}{cmd}    targetsheet("Auto") anchor(O60) width(560) height(400){p_end}
 
 {phang}Donut variant -- pie with 50% inner hole:{p_end}
 
 {phang}{cmd}googlesheets addchart using "$SS", sheet("Auto") type(donut) ///{p_end}
-{phang}{cmd}    domain(F2:F11) series(D2:D11) piehole(0.5)              ///{p_end}
+{phang}{cmd}    domain(A2:A11) series(F2:F11) piehole(0.5)               ///{p_end}
 {phang}{cmd}    title("Trunk space (first 10 rows)")                     ///{p_end}
-{phang}{cmd}    tx2036style legendpos(BOTTOM)                            ///{p_end}
+{phang}{cmd}    legendpos(BOTTOM)                                        ///{p_end}
 {phang}{cmd}    targetsheet("Auto") anchor(O90) width(420) height(340){p_end}
 
 
 {dlgtab:8.  Read the Sheet back into Stata for round-trip QA}
 
-{phang}{cmd}googlesheets import using "$SS", sheet("Auto") firstrow clear{p_end}
+{phang}{cmd}googlesheets import using "$SS", sheet("Auto") range("A1:L75") firstrow clear{p_end}
 {phang}{cmd}list make price mpg in 1/5, abbrev(15) noobs{p_end}
 
 {pstd}{cmd:firstrow} maps row 1 to Stata variable names.  Without it every
@@ -290,7 +291,8 @@ cell is treated as data and Stata auto-names columns {it:v1 v2 ...}.{p_end}
 
 {dlgtab:9.  Append more rows on a subsequent run}
 
-{phang}{cmd}use newauto, clear                            // new observations{p_end}
+{phang}{cmd}sysuse auto, clear{p_end}
+{phang}{cmd}keep in 1/5                                   // stand-in for new rows{p_end}
 {phang}{cmd}googlesheets export using "$SS", sheet("Auto") append{p_end}
 
 {pstd}{cmd:append} adds the current dataset below the existing rows.  The
