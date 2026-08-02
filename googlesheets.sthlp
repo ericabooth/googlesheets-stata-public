@@ -109,8 +109,8 @@ and {bf:Google Drive API}.{p_end}
 Fill in the required fields, add yourself as a test user, and grant the scopes
 {bf:.../auth/spreadsheets} and {bf:.../auth/drive}.{p_end}
 
-{phang}{bf:Step 3.}  {bf:APIs & Services > Credentials > Create credentials > OAuth
-client ID}.  Application type: {bf:Desktop app}.  Download the JSON file.{p_end}
+{phang}{bf:Step 3.}  {bf:APIs & Services > Credentials > Create credentials > OAuth client ID}.
+Application type: {bf:Desktop app}.  Download the JSON file.{p_end}
 
 {phang}{bf:Step 4.}  Save the JSON locally and tell Stata where to find it by
 setting {cmd:$GS_CLIENT} once.  The recommended place is your {bf:profile.do},
@@ -330,8 +330,8 @@ for enter Stata (the helper filters the reply before loading it).{p_end}
 {marker tips}{...}
 {title:Tips, gotchas, and headless / scheduled runs}
 
-{phang}-- {ul:Tabs must exist before you write to them.}  {cmd:googlesheets
-export} and {cmd:put} both fail if the target sheet doesn't exist.  Create
+{phang}-- {ul:Tabs must exist before you write to them.}  {cmd:googlesheets export} and
+{cmd:put} both fail if the target sheet doesn't exist.  Create
 it first with {cmd:googlesheets addsheet, title("...")} (the helpfile examples
 above always do this).{p_end}
 
