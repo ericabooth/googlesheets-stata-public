@@ -1,4 +1,6 @@
-*! googlesheets_import v0.1.0  2026-06-27
+*! googlesheets_import v0.1.1  2026-08-16
+*! v0.1.1 2026-08-16: escape the output tempfile path into the args JSON
+*!   (Windows backslash paths otherwise break json.load).
 *! Import a range of cells from a Google Sheet into the current Stata
 *! dataset.  Modelled on `import excel using ...'.
 *!
@@ -71,7 +73,13 @@ program define googlesheets_import
         local _sval_j `"`r(escaped)'"'
         file write _h `","' _n `"  "since":{"column":"`_scol_j'","value":"`_sval_j'"}"'
     }
-    file write _h `","' _n `"  "data_out_path":"`dataout'""' _n
+    * Escape the output tempfile path: on Windows it is a backslash path, and
+    * an unescaped backslash is an illegal JSON string escape (\U, \A, ...),
+    * which breaks json.load on the Python side.  export.ado escapes datain the
+    * same way.
+    _gs_jesc, raw(`"`dataout'"')
+    local dataout_j `"`r(escaped)'"'
+    file write _h `","' _n `"  "data_out_path":"`dataout_j'""' _n
     file write _h `"}"' _n
     file close _h
 

@@ -1,4 +1,7 @@
-*! googlesheets_runpy v0.1.0  2026-06-27
+*! googlesheets_runpy v0.1.1  2026-08-16
+*! v0.1.1: diagnose an empty helper result file (dead/interrupted first-run
+*!         setup) with an actionable message instead of letting the empty
+*!         blob abort downstream with the opaque "option content() required".
 *! Shell into googlesheets_helper.py with an args JSON file, then surface
 *! the status/message/error fields PLUS the raw result-file contents in
 *! r() macros.  INTERNAL helper.
@@ -45,7 +48,7 @@ program define googlesheets_runpy, rclass
     capture confirm file `"`outjson'"'
     if _rc {
         display as error "googlesheets: helper produced no output file."
-        display as error "  Is python3 on PATH?  Run the printed command in a terminal to debug."
+        display as error `"  Is `PY' on PATH?  Run the printed command in a terminal to debug."'
         exit 198
     }
 
@@ -70,6 +73,25 @@ program define googlesheets_runpy, rclass
     if "`verbose'" != "" {
         display as text "[googlesheets] result content:"
         display as text `"`_content'"'
+    }
+
+    * A healthy helper always writes at least a `status=' line -- on success
+    * AND on a caught error.  A truly empty result file therefore means the
+    * helper process died before it could write anything: almost always a
+    * first-run setup problem (no python3 on PATH, or the one-time helper-
+    * environment build / Google sign-in did not finish) rather than a Sheets
+    * error.  Diagnose it here.  Otherwise the empty string flows into the
+    * _gs_field calls below and the command aborts with the opaque, misleading
+    * "option content() required".
+    if strtrim(`"`_content'"') == "" {
+        display as error "googlesheets: the Python helper returned no output, so the command could not run."
+        display as error "  This is a setup issue on this machine, not a spreadsheet error.  Check, in order:"
+        display as error `"    1. A working Python: run  `PY' --version  in a terminal (Stata used `PY')."'
+        display as error "    2. First-time use builds a one-time helper environment and opens a browser"
+        display as error "       for Google sign-in; finish that once, then re-run.  See help googlesheets##setup."
+        display as error "    3. Re-run this command with the  verbose  option to print the exact helper"
+        display as error "       command, then run that command yourself in a terminal to read the real error."
+        exit 198
     }
 
     * Extract the three universal status fields from the in-memory copy.

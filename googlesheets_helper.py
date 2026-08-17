@@ -2,6 +2,10 @@
 """
 googlesheets_helper.py -- Python backend for the Stata `googlesheets` package.
 
+Portability (2026-08-16): Windows-safe venv re-exec (blocking child, not
+os.execv) and explicit encoding="utf-8" on every text file, so non-ASCII
+sheet titles and paths round-trip on Windows as they do on macOS/Linux.
+
 The Stata side writes a JSON args file, shells into this script with the args
 file as the first argument and an output file as the second, then reads the
 JSON the script writes back.  All Google Sheets / Drive API calls happen here.
@@ -56,6 +60,30 @@ def _venv_python(venv: Path) -> Path:
     return venv / "bin" / "python3"
 
 
+def _reexec_into(vpy: Path) -> None:
+    """Hand control to the venv interpreter, re-running this script with the
+    same arguments, then do not return.
+
+    On POSIX, os.execv replaces the process image in place: the PID is
+    unchanged, so Stata's synchronous ``shell`` keeps waiting on the same
+    process until the venv interpreter has written the result file.
+
+    On Windows there is no in-place exec.  os.execv delegates to the C
+    runtime, which SPAWNS a new process for the venv interpreter and then
+    terminates the caller; Stata's ``shell`` sees its direct child exit and
+    returns immediately, before the venv child has written any output.  The
+    ado side then reads an empty result file and reports a spurious failure.
+    Use a blocking child there instead, and propagate its exit code.  Passing
+    argv as a list also sidesteps the CRT's command-line re-splitting when a
+    path contains spaces.
+    """
+    argv = [str(vpy)] + sys.argv
+    if sys.platform == "win32":
+        completed = subprocess.run(argv)
+        sys.exit(completed.returncode)
+    os.execv(str(vpy), argv)
+
+
 def _ensure_libs(auto_install: bool) -> None:
     """If our deps are already importable in the current interpreter, we're
     done.  Otherwise create (or re-use) a private venv, install the deps
@@ -81,7 +109,7 @@ def _ensure_libs(auto_install: bool) -> None:
 
     if vpy.exists() and not in_our_venv:
         # Re-exec into venv; deps may already be installed there.
-        os.execv(str(vpy), [str(vpy)] + sys.argv)
+        _reexec_into(vpy)
 
     if not auto_install:
         raise RuntimeError(
@@ -107,7 +135,7 @@ def _ensure_libs(auto_install: bool) -> None:
     )
 
     # Re-exec into the venv with the same args.
-    os.execv(str(vpy), [str(vpy)] + sys.argv)
+    _reexec_into(vpy)
 
 
 # -- ID / URL parsing --------------------------------------------------------
@@ -186,7 +214,7 @@ def _save_token(creds, token_json: str) -> None:
     if not token_json:
         return
     Path(token_json).parent.mkdir(parents=True, exist_ok=True)
-    with open(token_json, "w") as f:
+    with open(token_json, "w", encoding="utf-8") as f:
         f.write(creds.to_json())
     try:
         os.chmod(token_json, 0o600)
@@ -328,7 +356,7 @@ def cmd_read_range(args, sheets, drive):
     data_out = args.get("data_out_path")
     if data_out:
         import csv
-        with open(data_out, "w", newline="") as f:
+        with open(data_out, "w", newline="", encoding="utf-8") as f:
             w = csv.writer(f, delimiter="\t", lineterminator="\n",
                             quoting=csv.QUOTE_MINIMAL)
             for row in values:
@@ -352,7 +380,7 @@ def _read_values_from_args(args):
         raise ValueError("write/append: provide values[] or data_in_path.")
     import csv
     rows = []
-    with open(data_in, "r", newline="") as f:
+    with open(data_in, "r", newline="", encoding="utf-8") as f:
         for row in csv.reader(f, delimiter="\t"):
             # Convert numeric-looking cells to numbers so the Sheet stores
             # them as numbers (USER_ENTERED still applies but pre-typed
@@ -796,7 +824,7 @@ def main():
     args_path, out_path = sys.argv[1], sys.argv[2]
 
     try:
-        with open(args_path, "r") as f:
+        with open(args_path, "r", encoding="utf-8") as f:
             args = json.load(f)
 
         _ensure_libs(args.get("auto_install", True))
@@ -826,7 +854,7 @@ def main():
     # titles or row content (which is escaped to "_eq_" if present).
     def _safekey(s):  return str(s).replace("=", "_eq_").replace("\n", " ").replace("\r", " ")
     def _safeval(s):  return str(s).replace("\n", " ").replace("\r", " ").replace('"', "'")
-    with open(out_path, "w") as f:
+    with open(out_path, "w", encoding="utf-8") as f:
         f.write(f"status={payload['status']}\n")
         if payload["status"] == "ok":
             r = payload.get("result", {})
@@ -839,7 +867,7 @@ def main():
 
     # Also write a sidecar JSON for callers who want the full payload.
     try:
-        with open(out_path + ".json", "w") as f:
+        with open(out_path + ".json", "w", encoding="utf-8") as f:
             json.dump(payload, f)
     except Exception:
         pass
