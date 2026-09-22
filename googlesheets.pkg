@@ -25,7 +25,7 @@ d KW: forms
 d
 d Author: Eric A. Booth, Sr Researcher, Texas2036.org
 d Support: eric.a.booth@gmail.com
-d Distribution-Date: 20260816
+d Distribution-Date: 20260921
 d
 f googlesheets.ado
 f googlesheets.sthlp
@@ -46,3 +46,4 @@ f googlesheets_helper.py
 f _gs_jesc.ado
 f _gs_field.ado
 f _gs_outfield.ado
+f _gs_expandtilde.ado

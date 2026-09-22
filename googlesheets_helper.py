@@ -6,6 +6,11 @@ Portability (2026-08-16): Windows-safe venv re-exec (blocking child, not
 os.execv) and explicit encoding="utf-8" on every text file, so non-ASCII
 sheet titles and paths round-trip on Windows as they do on macOS/Linux.
 
+Paths (2026-09-21): a leading "~" in the client/token paths is expanded
+(Path() does not do this), and an uploaded Office file that was never
+converted to a native Sheet now gets a plain explanation instead of the
+API's "not supported for this document" 400.
+
 The Stata side writes a JSON args file, shells into this script with the args
 file as the first argument and an output file as the second, then reads the
 JSON the script writes back.  All Google Sheets / Drive API calls happen here.
@@ -170,6 +175,13 @@ def get_credentials(client_json: str, token_json: str):
     from google.oauth2.credentials import Credentials
     from google.auth.transport.requests import Request
     from google_auth_oauthlib.flow import InstalledAppFlow
+
+    # Expand a leading "~" (Path() does not).  The Stata side normally does
+    # this already; doing it here too covers any caller that builds the args
+    # JSON another way, and the HOME-unset case, since expanduser() can fall
+    # back to the passwd database.
+    client_json = os.path.expanduser(client_json) if client_json else client_json
+    token_json  = os.path.expanduser(token_json)  if token_json  else token_json
 
     creds = None
     if token_json and Path(token_json).exists():
@@ -817,6 +829,28 @@ SUBCOMMANDS = {
 }
 
 
+_OFFICE_FILE_HINT = (
+    "This is an uploaded file (for example .xlsx or .csv), not a native Google "
+    "Sheet, so the Sheets API cannot read it.  Open it in Google Sheets and "
+    "choose File > Save as Google Sheets, then use the new sheet's URL."
+)
+
+
+def _friendly_message(e: Exception) -> str:
+    """Prepend plain guidance to the API's opaque wording for a known case.
+
+    Google reports an uploaded (non-native) file as HTTP 400 "This operation
+    is not supported for this document"; some replies add "The document must
+    not be an Office file".  Match either, and keep the API's own text so
+    nothing is lost if the phrase ever changes.
+    """
+    msg = str(e)
+    low = msg.lower()
+    if "not supported for this document" in low or "must not be an office file" in low:
+        return _OFFICE_FILE_HINT + "  (API said: " + msg + ")"
+    return msg
+
+
 def main():
     if len(sys.argv) < 3:
         sys.stderr.write("usage: googlesheets_helper.py <args.json> <out.json>\n")
@@ -833,6 +867,11 @@ def main():
         if sub not in SUBCOMMANDS:
             raise ValueError(f"unknown subcommand '{sub}'. Known: {sorted(SUBCOMMANDS)}")
 
+        # An uploaded .xlsx that was never converted to a native Sheet carries
+        # rtpof=true in its Drive URL; explain that before calling the API.
+        if "rtpof=true" in str(args.get("spreadsheet", "")):
+            raise ValueError(_OFFICE_FILE_HINT)
+
         creds  = get_credentials(args["client_json"], args["token_json"])
         sheets = get_service(creds, "sheets", "v4")
         drive  = get_service(creds, "drive",  "v3")
@@ -844,7 +883,7 @@ def main():
         payload = {
             "status":    "error",
             "error":     type(e).__name__,
-            "message":   str(e),
+            "message":   _friendly_message(e),
             "traceback": traceback.format_exc(),
         }
 

@@ -1,4 +1,4 @@
-*! googlesheets v0.1.3  2026-08-16
+*! googlesheets v0.1.4  2026-09-21
 *! Stata wrapper for the Google Sheets API.
 *!
 *! Read, write, and structurally edit Google Sheets from Stata, the way
