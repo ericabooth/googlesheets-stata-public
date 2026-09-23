@@ -188,6 +188,9 @@ googlesheets addchart using "..." , sheet("Auto") type(donut)      ///
 
 The shipped [test_googlesheets.do](test_googlesheets.do) is a 100-line end-to-end exercise using Stata's built-in `auto` dataset: it builds a fresh tab, brands the header, drops a correlation matrix off to the side, inserts four charts (column / scatter / bar / donut), reads the Sheet back, and tears the tab down. Set `$GS_CLIENT` and `$GS_TEST_SHEET` and run it against any Sheet you own.
 
+
 ## Author and license
 
 Eric A. Booth, Sr Researcher, Texas 2036 (eric.a.booth@gmail.com). MIT-licensed. Built atop the Google Sheets API; not affiliated with or endorsed by Google.
+
+ Thanks to Marshall W. Garland and Elizabeth Teas for debugging, review, and input. 
