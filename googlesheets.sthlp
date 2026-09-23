@@ -359,4 +359,4 @@ the browser again; click Allow and you're back.{p_end}
 {phang}Authored by Eric A. Booth, Sr Researcher, Texas2036.org (eric.a.booth@gmail.com), 2026.  MIT-licensed.  Built atop
 the Google Sheets API; this package is not affiliated with Google.{p_end}
 
-{phang}Thanks to Marshall W. Garland for review and input.{p_end}
+{phang}Thanks to Marshall W. Garland and Elizabeth Teas for debugging, review, and input.{p_end}
