@@ -1,4 +1,6 @@
-*! googlesheets_export v0.1.0  2026-06-27
+*! googlesheets_export v0.1.1  2026-11-08
+*! v0.1.1: export the temporary file with -quote- so a string that contains a
+*!   line break stays one row (it used to split into extra rows in the Sheet).
 *! Export the current Stata dataset to a Google Sheet range.
 *! Modelled on `export excel using ...'.
 *!
@@ -33,7 +35,7 @@ program define googlesheets_export
 
     * Dump current data to a temp TSV.  The helper will read it.
     tempfile datain
-    quietly export delimited using `"`datain'"', delimiter(tab) ///
+    quietly export delimited using `"`datain'"', delimiter(tab) quote ///
         `=cond("`firstrow'" != "", "", "novarnames")' replace
 
     _gs_jesc, raw(`"`client_json'"')

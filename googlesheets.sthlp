@@ -1,5 +1,5 @@
 {smcl}
-{* *! googlesheets v0.1.2  2026-07-31}{...}
+{* *! googlesheets v0.1.5  2026-11-08}{...}
 {cmd:help googlesheets}{...}
 {viewerjumpto "Syntax"      "googlesheets##syntax"}{...}
 {viewerjumpto "Subcommands" "googlesheets##subcommands"}{...}
@@ -115,11 +115,17 @@ client ID}.  Application type: {bf:Desktop app}.  Download the JSON file.{p_end}
 {phang}{bf:Step 4.}  Save the JSON locally and tell Stata where to find it by
 setting {cmd:$GS_CLIENT} once.  The recommended place is your {bf:profile.do},
 which Stata reads on every launch.  On macOS the profile is usually at
-{bf:~/Documents/Stata/ado/personal/profile.do}; on Windows it lives next to
+{bf:/Users/}{it:yourname}{bf:/Documents/Stata/ado/personal/profile.do}; on Windows it lives next to
 the Stata executable.  Add one of these blocks to it:{p_end}
 
 {phang}{ul:Simple form -- absolute path}{p_end}
-{phang}{cmd}global GS_CLIENT "~/.config/stata-googlesheets/client.json"{p_end}
+{phang}{cmd}global GS_CLIENT "/Users/yourname/.config/stata-googlesheets/client.json"{p_end}
+{phang}{cmd}global GS_CLIENT "C:/Users/yourname/AppData/Roaming/stata-googlesheets/client.json"{p_end}
+
+{pstd}Give the full path, as above, rather than one that starts with {bf:~}.
+Operating systems, Stata versions and Python handle {bf:~} differently.
+{cmd:googlesheets} expands a leading {bf:~} itself as a safety net, but a full
+path works everywhere.{p_end}
 
 {phang}{ul:Cross-OS form -- auto-detects the Google Drive mount point}{p_end}
 {phang}{cmd}if inlist("`c(os)'", "MacOSX", "Unix") {c -(}{p_end}
@@ -142,7 +148,8 @@ refresh token is cached next to the client JSON ({bf:token.json}, mode 0600).
 All future calls are silent.{p_end}
 
 {pstd}On the very first invocation the package also creates a private Python
-virtualenv at {bf:~/.config/stata-googlesheets/venv} and pip-installs the
+virtualenv at {bf:.config/stata-googlesheets/venv} in your home folder
+({bf:%APPDATA%\stata-googlesheets\venv} on Windows) and pip-installs the
 Google client libraries into it.  The user's system Python is left untouched.{p_end}
 
 {pstd}{ul:Verify the setup}{p_end}
@@ -155,9 +162,11 @@ Google client libraries into it.  The user's system Python is left untouched.{p_
 
 {pstd}Pass explicit hex codes to {cmd:colors()} on {cmd:addchart}, and to
 {cmd:bgcolor()} / {cmd:fgcolor()} on {cmd:format}, to style a chart or a cell
-range yourself.  The {cmd:tx2036style} option is a shortcut that applies one
-fixed house style (a Montserrat title in navy plus a matching series palette)
-if you publish under it.  A manual call looks like this:{p_end}
+range yourself.  The {cmd:tx2036style} option is an {it:internal} house style
+used in the authors' own workflows (a Montserrat title in navy plus a matching
+series palette).  It is off unless you ask for it, and you do not need it; if
+the Montserrat font is unavailable, Google Sheets uses its default font and the
+chart is still drawn.  A manual call looks like this:{p_end}
 
 {phang}{cmd}googlesheets format using "..."  , sheet("Auto") range("A1:L1") ///{p_end}
 {phang}{cmd}    bgcolor("#1B2D55") fgcolor("#FFFFFF") bold font("Montserrat") fontsize(12){p_end}
@@ -172,7 +181,7 @@ own spreadsheet URL or ID.  Each example builds on the previous one.{p_end}
 {phang}First, set the global pointing to your auth client JSON and the global
 pointing to a Sheet you can edit:{p_end}
 
-{phang}{cmd}global GS_CLIENT "~/.config/stata-googlesheets/client.json"{p_end}
+{phang}{cmd}global GS_CLIENT "/Users/yourname/.config/stata-googlesheets/client.json"{p_end}
 {phang}{cmd}global SS "https://docs.google.com/spreadsheets/d/.../edit"{p_end}
 
 

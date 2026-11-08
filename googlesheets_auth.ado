@@ -1,4 +1,7 @@
-*! googlesheets_auth v0.1.1  2026-09-21
+*! googlesheets_auth v0.1.2  2026-11-08
+*! v0.1.2: the default client path is built from the home directory directly,
+*!   never written with "~" (handling of "~" varies by OS, Stata version and
+*!   Python).  A "~" a user passes is still expanded here, as a safety net.
 *! v0.1.1: expand a leading "~" in the client and token paths before they
 *!   are validated or handed to the Python helper.  Stata's confirm file
 *!   expands "~" itself, so a "~/..." GS_CLIENT passed the check here and
@@ -11,7 +14,7 @@
 *! Path resolution priority:
 *!   1. The keyfile() option, if supplied.
 *!   2. The $GS_CLIENT global, if defined.
-*!   3. The platform default ~/.config/stata-googlesheets/client.json
+*!   3. The platform default <home>/.config/stata-googlesheets/client.json
 *!      (or %APPDATA%\stata-googlesheets\client.json on Windows).
 *!
 *! Token cache (refresh tokens; written silently on first auth):
@@ -39,9 +42,10 @@ program define googlesheets_auth, rclass
                 local keyfile "`_home'\\stata-googlesheets\\client.json"
             }
             else {
-                * Written with "~" and expanded just below, so that home
-                * resolution lives in one place (_gs_expandtilde).
-                local keyfile "~/.config/stata-googlesheets/client.json"
+                * Built from the home directory itself, not from "~".
+                local _home : env HOME
+                if `"`_home'"' == "" local _home : env USERPROFILE
+                local keyfile `"`_home'/.config/stata-googlesheets/client.json"'
             }
         }
     }

@@ -11,7 +11,7 @@ googlesheets put    using "...", sheet("Summary") cell(A1) string("Final report"
 googlesheets put    using "...", sheet("Summary") cell(B2) matrix(R)
 googlesheets format using "...", sheet("Summary") range("A1:E1") bgcolor("#1B2D55") bold
 googlesheets addchart using "...", sheet("Summary") type(column) ///
-    domain(A2:A6) series(B2:B6) title("Q4 totals") tx2036style anchor(D2)
+    domain(A2:A6) series(B2:B6) title("Q4 totals") anchor(D2)
 googlesheets addsheet,    spreadsheet("...") title("New tab")
 ```
 
@@ -58,17 +58,18 @@ The package uses an **OAuth Desktop client** so calls run as your own Google ide
 ### Step 2 — Wire it up (per machine)
 
 1. Save the downloaded JSON somewhere stable. Suggested path:
-   - macOS / Linux: `~/.config/stata-googlesheets/client.json`
+   - macOS / Linux: `/Users/yourname/.config/stata-googlesheets/client.json` (`/home/yourname/...` on Linux)
    - Windows: `%APPDATA%\stata-googlesheets\client.json`
 
 2. Tell Stata where to find it by setting `$GS_CLIENT` once. The right place is your `profile.do`, which Stata reads on every launch.
 
-   On **macOS** the profile usually lives at `~/Documents/Stata/ado/personal/profile.do`. If you don't have one, create it. On **Windows** it sits next to the Stata executable (see `help profile`).
+   On **macOS** the profile usually lives at `/Users/yourname/Documents/Stata/ado/personal/profile.do`. If you don't have one, create it. On **Windows** it sits next to the Stata executable (see `help profile`).
 
    The minimal addition is one line:
    ```stata
-   global GS_CLIENT "~/.config/stata-googlesheets/client.json"
+   global GS_CLIENT "/Users/yourname/.config/stata-googlesheets/client.json"
    ```
+   Use the full path rather than one starting with `~`: operating systems, Stata versions and Python treat `~` differently. (googlesheets expands a leading `~` itself as a safety net, but a full path works everywhere.)
 
    Or, if you keep the JSON in Google Drive so it's the same on every machine, auto-detect the mount point so the path stays correct cross-OS:
    ```stata
@@ -106,7 +107,7 @@ If `$GS_CLIENT` is empty after restart, your `profile.do` isn't being read — s
 
 - **No per-Sheet sharing.** OAuth uses your own Google identity, so the package can read or write any Sheet you can already open in your browser.
 - **No long-lived secret in the JSON.** The downloaded file contains a public client ID, not a password. The actual credential is the per-user token in `token.json`.
-- **Python deps are auto-installed in a private venv.** On the very first call the package creates `~/.config/stata-googlesheets/venv` and pip-installs `google-api-python-client`, `google-auth`, and `google-auth-oauthlib` into it. The user's system Python is left untouched. Subsequent calls re-exec into the venv automatically.
+- **Python deps are auto-installed in a private venv.** On the very first call the package creates `.config/stata-googlesheets/venv` in your home folder (`%APPDATA%\stata-googlesheets\venv` on Windows) and pip-installs `google-api-python-client`, `google-auth`, and `google-auth-oauthlib` into it. The user's system Python is left untouched. Subsequent calls re-exec into the venv automatically.
 
 ### Trade-off
 
@@ -167,22 +168,22 @@ googlesheets put using "..." , sheet("Coefficients") cell(B2) matrix(B)
 ### Insert a chart from data already on the Sheet
 
 ```stata
-* Bar chart, navy series colour, anchored at H10
+* Bar chart anchored at H10
 googlesheets addchart using "..." , sheet("Auto") type(bar)        ///
     domain(A2:A6) series(B2:B6)                                    ///
     names("Avg price")                                             ///
     title("Domestic vs foreign: average sticker price")            ///
-    tx2036style legendpos(NONE)                                    ///
+    legendpos(NONE)                                                ///
     targetsheet("Auto") anchor(H10) width(560) height(340)
 
 * Donut with a 50% inner hole
 googlesheets addchart using "..." , sheet("Auto") type(donut)      ///
     domain(A30:A34) series(B30:B34) piehole(0.5)                  ///
-    title("Sector mix") tx2036style legendpos(BOTTOM)              ///
+    title("Sector mix") legendpos(BOTTOM)                          ///
     targetsheet("Auto") anchor(D2)
 ```
 
-`tx2036style` applies a brand palette (`#1B2D55` / `#D44500` / `#2B6CB0` / `#6C7A8D` / `#7A9D54`) and a Montserrat navy title. Pass an explicit `colors("...|...")` to override, or omit `tx2036style` for Sheets' default theme.
+Charts use the Sheets default theme unless you pass `colors("...|...")`. The `tx2036style` option is an internal house style used in the authors' own workflows (a navy Montserrat title and a matching palette). It is off unless you ask for it, and you do not need it; if the Montserrat font is unavailable, Sheets uses its default font and the chart is still made.
 
 ### Full worked example with `sysuse auto`
 

@@ -1,4 +1,6 @@
-*! googlesheets_import v0.1.1  2026-08-16
+*! googlesheets_import v0.1.2  2026-11-08
+*! v0.1.2: bindquote(strict), so a cell that contains line breaks (a Google
+*!   Form paragraph answer, say) is read as one value, not several rows.
 *! v0.1.1 2026-08-16: escape the output tempfile path into the args JSON
 *!   (Windows backslash paths otherwise break json.load).
 *! Import a range of cells from a Google Sheet into the current Stata
@@ -105,7 +107,7 @@ program define googlesheets_import
     * "row 1 holds variable names", "nonames" for "every row is data".
     local _vn = cond("`firstrow'" != "", "varnames(1)", "varnames(nonames)")
     local _sa = cond("`stringall'" != "", "stringcols(_all)", "")
-    quietly import delimited using `"`dataout'"', delimiter(tab) `_vn' `_sa' clear
+    quietly import delimited using `"`dataout'"', delimiter(tab) bindquote(strict) `_vn' `_sa' clear
 
     display as result _n "[googlesheets import]"
     display as text   "  spreadsheet: `using'"

@@ -11,7 +11,7 @@
 *!
 *! Before running:
 *!   1. Set $GS_CLIENT to your OAuth Desktop client JSON path.
-*!         global GS_CLIENT "~/.config/stata-googlesheets/client.json"
+*!         global GS_CLIENT "/Users/yourname/.config/stata-googlesheets/client.json"
 *!   2. Set $GS_TEST_SHEET to a spreadsheet URL or ID you can edit.
 *!         global GS_TEST_SHEET "https://docs.google.com/spreadsheets/d/.../edit"
 *!
@@ -109,6 +109,8 @@ forvalues i = 1/`=_N' {
 }
 restore
 
+* tx2036style below is the authors' internal house style (off by default);
+* these tests use it to exercise that code path.
 googlesheets addchart using "`SS'", sheet("Auto") type(column)                ///
     domain(W101:W102) series(X101:X102)                                        ///
     names("Avg price")                                                         ///

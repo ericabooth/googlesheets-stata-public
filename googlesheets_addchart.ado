@@ -1,7 +1,10 @@
-*! googlesheets_addchart v0.2.0  2026-06-28
+*! googlesheets_addchart v0.2.1  2026-11-08
+*! v0.2.1: option spelled TX2036style (TX2036STyle is read as a different name
+*!   by older Stata, so "tx2036style" was rejected there).
 *! Insert a chart object into a Google Sheet via spreadsheets.batchUpdate.
-*! Brand defaults available via `tx2036style' -- Montserrat title, navy
-*! title colour, and the Texas 2036 palette for series colours.
+*! tx2036style is an INTERNAL house style for the authors' own workflows
+*! (Montserrat title, navy title colour, house palette).  It is off unless
+*! asked for; Sheets falls back to its default font if Montserrat is absent.
 *!
 *!   googlesheets addchart using "<id-or-url>" ,                          ///
 *!       sheet("Sheet1")                                                  ///
@@ -29,7 +32,7 @@ program define googlesheets_addchart
         [ NAMEs(string) COLors(string)                                 ///
           TITLE(string) SUBtitle(string) XLAbel(string) YLAbel(string) ///
           LEGENDPos(string)                                            ///
-          TX2036STyle                                                  ///
+          TX2036style                                                  ///
           PIEhole(real 0)                                             ///
           TARGETsheet(string) ANCHor(string)                          ///
           WIDTH(integer 540) HEIGHT(integer 360)                       ///
