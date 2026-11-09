@@ -1,4 +1,12 @@
-*! googlesheets v0.1.6  2026-11-09
+*! googlesheets v0.1.7  2026-11-09
+*! v0.1.7: every subcommand writes its args file through a temporary file
+*!   handle (import with a bad since() left a fixed handle open, so every
+*!   later command failed with r(110)); apostrophes and backticks in tab
+*!   names, ranges and text are passed safely ('Auto'!A1:B2 in format, a
+*!   tab named Bob's data in addchart); export sends floats at float
+*!   precision (3.58, not 3.5799999); put value(5.) and value(+5) work;
+*!   the helper's payload sidecar is written only with verbose; Windows
+*!   default client path has single separators and no C:\Users\Default guess.
 *! v0.1.6: import without clear refuses when data are in memory (error 4,
 *!   as import excel); multi-account URLs (/spreadsheets/u/N/d/<id>) are
 *!   parsed; export keeps string variables as text; put writes a missing
@@ -55,5 +63,6 @@ program define googlesheets
         help googlesheets
         exit 0
     }
-    googlesheets_`sub' `0'
+    * macval(): $ and ` in user text reach the subcommand unexpanded.
+    googlesheets_`sub' `macval(0)'
 end

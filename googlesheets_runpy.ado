@@ -1,4 +1,7 @@
-*! googlesheets_runpy v0.1.1  2026-08-16
+*! googlesheets_runpy v0.1.2  2026-11-09
+*! v0.1.2: temporary file handle; verbose is passed on to the helper, which
+*!   then also writes its full payload (with any traceback) next to the
+*!   result file; without verbose it no longer leaves that file behind.
 *! v0.1.1: diagnose an empty helper result file (dead/interrupted first-run
 *!         setup) with an actionable message instead of letting the empty
 *!         blob abort downstream with the opaque "option content() required".
@@ -11,7 +14,7 @@
 *!   r(message)   error message text (empty when ok)
 *!   r(error)     exception name (empty when ok)
 *!   r(content)   the full result-file contents as one string -- the
-*!                caller passes this to _gs_outfield_str() to extract
+*!                caller passes this to _gs_field to extract
 *!                individual key=value fields.  We can't return a path
 *!                because Stata frees tempfiles when the sub-program
 *!                ends, deleting the underlying file before the caller
@@ -30,8 +33,9 @@ program define googlesheets_runpy, rclass
     local helper "`r(fn)'"
 
     tempfile outjson
-    quietly file open _gsfh using `"`outjson'"', write text replace
-    file close _gsfh
+    tempname gsfh
+    quietly file open `gsfh' using `"`outjson'"', write text replace
+    file close `gsfh'
 
     if lower("`c(os)'") == "windows" {
         local PY "python"
@@ -41,16 +45,12 @@ program define googlesheets_runpy, rclass
     }
 
     if "`verbose'" != "" {
-        display as text `"[googlesheets] `PY' "`helper'" "`args'" "`outjson'""'
+        display as text `"[googlesheets] `PY' "`helper'" "`args'" "`outjson'" verbose"'
     }
-    quietly shell `PY' "`helper'" "`args'" "`outjson'"
+    quietly shell `PY' "`helper'" "`args'" "`outjson'" `verbose'
 
-    capture confirm file `"`outjson'"'
-    if _rc {
-        display as error "googlesheets: helper produced no output file."
-        display as error `"  Is `PY' on PATH?  Run the printed command in a terminal to debug."'
-        exit 198
-    }
+    * The result file exists already (created above), so a helper that never
+    * ran shows up as empty content, which is diagnosed below.
 
     * Slurp the entire result-file into a single local so it survives the
     * tempfile cleanup at end-of-program.  These files are small (a few

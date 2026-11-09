@@ -45,5 +45,4 @@ f googlesheets_addchart.ado
 f googlesheets_helper.py
 f _gs_jesc.ado
 f _gs_field.ado
-f _gs_outfield.ado
 f _gs_expandtilde.ado

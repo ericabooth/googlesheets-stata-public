@@ -1,4 +1,8 @@
-*! googlesheets_import v0.1.3  2026-11-09
+*! googlesheets_import v0.1.4  2026-11-09
+*! v0.1.4: since() is checked before the args file is opened, and that file
+*!   uses a temporary handle: a since() without "=" left the fixed handle _h
+*!   open, and every later googlesheets command failed with r(110).  Text
+*!   shown in the summary is not macro-expanded.
 *! v0.1.3: without clear, refuse (error 4, "no; data in memory would be
 *!   lost") when data are in memory, as import excel does.  The data in
 *!   memory are no longer dropped before the Sheet is read, so a failed read
@@ -44,54 +48,63 @@ program define googlesheets_import, rclass
     local client_json `"`r(client_json)'"'
     local token_json  `"`r(token_json)'"'
 
-    _gs_jesc, raw(`"`client_json'"')
-    local cj `"`r(escaped)'"'
-    _gs_jesc, raw(`"`token_json'"')
-    local tj `"`r(escaped)'"'
-    _gs_jesc, raw(`"`using'"')
-    local ss `"`r(escaped)'"'
-    _gs_jesc, raw(`"`sheet'"')
-    local sh `"`r(escaped)'"'
-    _gs_jesc, raw(`"`range'"')
-    local rg `"`r(escaped)'"'
+    _gs_jesc, raw(`"`macval(client_json)'"')
+    mata: st_local("cj", st_global("r(escaped)"))
+    _gs_jesc, raw(`"`macval(token_json)'"')
+    mata: st_local("tj", st_global("r(escaped)"))
+    _gs_jesc, raw(`"`macval(using)'"')
+    mata: st_local("ss", st_global("r(escaped)"))
+    _gs_jesc, raw(`"`macval(sheet)'"')
+    mata: st_local("sh", st_global("r(escaped)"))
+    _gs_jesc, raw(`"`macval(range)'"')
+    mata: st_local("rg", st_global("r(escaped)"))
+
+    * since() is parsed as "column=value".  Checked before the args file is
+    * opened, so a bad since() leaves no file open.
+    if `"`macval(since)'"' != "" {
+        mata: st_local("_eqp", strofreal(strpos(st_local("since"), "=")))
+        if `_eqp' == 0 {
+            display as error "since() must be in the form column=value"
+            exit 198
+        }
+        mata: st_local("_scol", substr(st_local("since"), 1, `_eqp' - 1))
+        mata: st_local("_sval", substr(st_local("since"), `_eqp' + 1, .))
+        _gs_jesc, raw(`"`macval(_scol)'"')
+        mata: st_local("_scol_j", st_global("r(escaped)"))
+        _gs_jesc, raw(`"`macval(_sval)'"')
+        mata: st_local("_sval_j", st_global("r(escaped)"))
+    }
 
     * Data-out path (TSV the helper will write).
     tempfile dataout
 
     tempfile argjson
-    quietly file open _h using `"`argjson'"', write text replace
-    file write _h `"{"' _n
-    file write _h `"  "subcommand":"read_range","' _n
-    file write _h `"  "client_json":"`cj'","' _n
-    file write _h `"  "token_json":"`tj'","' _n
-    file write _h `"  "spreadsheet":"`ss'","' _n
-    file write _h `"  "sheet":"`sh'""'
-    if "`range'" != "" file write _h `","' _n `"  "range":"`rg'""'
-    if `tail' > 0     file write _h `","' _n `"  "tail":`tail'"'
-    if "`since'" != "" {
-        * since() is parsed as "column=value"
-        local _eqp = strpos("`since'", "=")
-        if `_eqp' == 0 {
-            display as error "since() must be in the form column=value"
-            exit 198
-        }
-        local _scol = substr("`since'", 1, `_eqp' - 1)
-        local _sval = substr("`since'", `_eqp' + 1, .)
-        _gs_jesc, raw(`"`_scol'"')
-        local _scol_j `"`r(escaped)'"'
-        _gs_jesc, raw(`"`_sval'"')
-        local _sval_j `"`r(escaped)'"'
-        file write _h `","' _n `"  "since":{"column":"`_scol_j'","value":"`_sval_j'"}"'
+    tempname h
+    quietly file open `h' using `"`argjson'"', write text replace
+    file write `h' `"{"' _n
+    file write `h' `"  "subcommand":"read_range","' _n
+    file write `h' `"  "client_json":"`macval(cj)'","' _n
+    file write `h' `"  "token_json":"`macval(tj)'","' _n
+    file write `h' `"  "spreadsheet":"`macval(ss)'","' _n
+    file write `h' `"  "sheet":"`macval(sh)'""'
+    if "`range'" != "" {
+        file write `h' `","' _n `"  "range":"`macval(rg)'""'
+    }
+    if `tail' > 0     {
+        file write `h' `","' _n `"  "tail":`macval(tail)'"'
+    }
+    if `"`macval(since)'"' != "" {
+        file write `h' `","' _n `"  "since":{"column":"`macval(_scol_j)'","value":"`macval(_sval_j)'"}"'
     }
     * Escape the output tempfile path: on Windows it is a backslash path, and
     * an unescaped backslash is an illegal JSON string escape (\U, \A, ...),
     * which breaks json.load on the Python side.  export.ado escapes datain the
     * same way.
-    _gs_jesc, raw(`"`dataout'"')
-    local dataout_j `"`r(escaped)'"'
-    file write _h `","' _n `"  "data_out_path":"`dataout_j'""' _n
-    file write _h `"}"' _n
-    file close _h
+    _gs_jesc, raw(`"`macval(dataout)'"')
+    mata: st_local("dataout_j", st_global("r(escaped)"))
+    file write `h' `","' _n `"  "data_out_path":"`macval(dataout_j)'""' _n
+    file write `h' `"}"' _n
+    file close `h'
 
     googlesheets_runpy, args(`"`argjson'"') `verbose'
     if "`r(status)'" != "ok" {
@@ -118,10 +131,14 @@ program define googlesheets_import, rclass
     quietly import delimited using `"`dataout'"', delimiter(tab) bindquote(strict) `_vn' `_sa' clear
 
     display as result _n "[googlesheets import]"
-    display as text   "  spreadsheet: `using'"
-    display as text   "  sheet:       `sheet'"
-    if "`range'" != "" display as text "  range:       `range'"
-    if "`since'" != "" display as text "  since:       `since'"
+    display as text   `"  spreadsheet: `macval(using)'"'
+    display as text   `"  sheet:       `macval(sheet)'"'
+    if `"`macval(range)'"' != "" {
+        display as text `"  range:       `macval(range)'"'
+    }
+    if `"`macval(since)'"' != "" {
+        display as text `"  since:       `macval(since)'"'
+    }
     if `tail'  > 0     display as text "  tail:        `tail'"
     display as text   "  loaded:      `=_N' obs x `=c(k)' vars  (helper reported `nrows' x `ncols')"
 

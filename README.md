@@ -71,19 +71,16 @@ The package uses an **OAuth Desktop client** so calls run as your own Google ide
    ```
    Use the full path rather than one starting with `~`: operating systems, Stata versions and Python treat `~` differently. (googlesheets expands a leading `~` itself as a safety net, but a full path works everywhere.)
 
-   Or, if you keep the JSON in Google Drive so it's the same on every machine, auto-detect the mount point so the path stays correct cross-OS:
+   Or, on macOS, if you keep the JSON in Google Drive so it's the same on every machine, find the Google Drive for desktop folder under `~/Library/CloudStorage`. On Linux or Windows (where the Drive letter varies), give the full path as in the one-line form above.
    ```stata
-   if inlist("`c(os)'", "MacOSX", "Unix") {
+   if "`c(os)'" == "MacOSX" {
        local _gd_base "/Users/`c(username)'/Library/CloudStorage"
        local _gd_folders : dir "`_gd_base'" dirs "GoogleDrive-*"
        local _gd_folder  : word 1 of `_gd_folders'
        local _gd_folder  = subinstr(`"`_gd_folder'"', `"""', "", .)
        local _my_drive   `"`_gd_base'/`_gd_folder'/My Drive"'
+       global GS_CLIENT  `"`_my_drive'/_credentials/client.json"'
    }
-   else if "`c(os)'" == "Windows" {
-       local _my_drive "G:/My Drive"
-   }
-   global GS_CLIENT     `"`_my_drive'/_credentials/client.json"'
    global GS_TEST_SHEET "https://docs.google.com/spreadsheets/d/<your-id>/edit"
    ```
 
@@ -136,6 +133,9 @@ googlesheets import using "..." , sheet("Form Responses 1") firstrow clear ///
 
 - **`import` needs `clear` when data are in memory**, as `import excel` does. Without it the command stops with error 4 ("no; data in memory would be lost"). The data in memory are replaced only after the Sheet has been read. With `firstrow`, variable names are lowercased, as `import delimited` does by default (`Timestamp` becomes `timestamp`). `import` stores `r(N)`, `r(k)`, `r(spreadsheet)` and `r(sheet)`.
 - **`export` keeps string variables as text.** Numeric variables are written as numbers; a string variable such as a ZIP code `"00123"` keeps its leading zeros, and `"1e5"` or `"2026-01-01"` is stored as typed. A formula held in a string variable (`=SUM(...)`) is also written as text, not evaluated; use `put ..., formula()` to place a live formula. Numeric variables with value labels are written as their labels.
+- **Floats keep their displayed precision.** A `float` variable is sent at the precision a float holds (3.58, not 3.5799999).
+- **`format ..., range()`** may name its own tab (`'Auto'!A1:B2`); it is used as given.
+- **`verbose`** prints the helper command and its result, and has the helper write its full reply (with any Python traceback) to a `.json` file next to its result file. Without `verbose` no such file is left in the temporary folder.
 - **`put ..., matrix()` writes missing values as blank cells**, clearing whatever was in them. `value(.)` blanks a single cell.
 - **`addchart` checks `type()`**: column, bar, stacked_column, stacked_bar, line, area, scatter, pie or donut. Anything else is an error.
 - **Spreadsheet URLs** may be the plain `.../spreadsheets/d/<id>/edit` form or the multi-account `.../spreadsheets/u/1/d/<id>/edit` form; a bare id works too.

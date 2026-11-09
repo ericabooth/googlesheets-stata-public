@@ -2,6 +2,11 @@
 """
 googlesheets_helper.py -- Python backend for the Stata `googlesheets` package.
 
+v0.1.7 (2026-11-09): a float column from export is sent as the shortest
+decimal that gives back the same float (3.58, not 3.5799999); a range that
+names its own tab ('Auto'!A1:B2) is used as given; the <out>.json sidecar
+with the full payload is written only when the Stata side passes verbose.
+
 v0.1.6 (2026-11-09): spreadsheet URLs of the multi-account form
 /spreadsheets/u/N/d/<id> are parsed; a tab name that contains an apostrophe
 is written as 'Bob''s data' in A1 ranges; export keeps string columns as text
@@ -39,6 +44,7 @@ from __future__ import annotations
 import json
 import os
 import re
+import struct
 import subprocess
 import sys
 import traceback
@@ -323,6 +329,9 @@ def _quote_sheet(sheet):
 
 
 def _build_range(sheet, rng):
+    # A range that already names its tab ('Auto'!A1:B2) is used as given.
+    if rng and "!" in rng:
+        return rng
     if sheet and rng:
         return f"{_quote_sheet(sheet)}!{rng}"
     if sheet:
@@ -447,6 +456,24 @@ def _read_values_from_args(args):
         except (TypeError, ValueError):
             return c
 
+    def _as_float32(c):
+        # The shortest decimal (6 to 9 significant digits) that reads back
+        # as the same 4-byte float, so a Stata float 3.58 is sent as 3.58
+        # rather than the 3.5799999 export delimited writes.
+        v = _as_number(c)
+        if not isinstance(v, float) or v != v or v in (float("inf"), float("-inf")):
+            return v
+        try:
+            target = struct.unpack("f", struct.pack("f", v))[0]
+        except (OverflowError, struct.error):
+            return v
+        for p in range(6, 10):
+            s = f"{v:.{p}g}"
+            if struct.unpack("f", struct.pack("f", float(s)))[0] == target:
+                out = float(s)
+                return int(out) if out.is_integer() and "e" not in s and abs(out) < 2**53 else out
+        return v
+
     rows = []
     with open(data_in, "r", newline="", encoding="utf-8") as f:
         for i, row in enumerate(csv.reader(f, delimiter="\t")):
@@ -458,6 +485,8 @@ def _read_values_from_args(args):
                     out.append(_as_number(c))
                 elif (i == 0 and header_row) or (j < len(col_types) and col_types[j] == "s"):
                     out.append(_as_text(c))
+                elif j < len(col_types) and col_types[j] == "f":
+                    out.append(_as_float32(c))
                 else:
                     out.append(_as_number(c))
             rows.append(out)
@@ -965,12 +994,17 @@ def main():
                 if k in payload:
                     f.write(f"{k}={_safeval(_flatten(payload[k]))}\n")
 
-    # Also write a sidecar JSON for callers who want the full payload.
-    try:
-        with open(out_path + ".json", "w", encoding="utf-8") as f:
-            json.dump(payload, f)
-    except Exception:
-        pass
+    # With verbose (a third argument), also write the full payload, traceback
+    # included, to <out>.json for debugging.  Without it nothing else is
+    # written: Stata removes only its own temporary file, so a sidecar would
+    # stay behind in the temporary directory after every call.
+    if len(sys.argv) > 3 and sys.argv[3] == "verbose":
+        try:
+            with open(out_path + ".json", "w", encoding="utf-8") as f:
+                json.dump(payload, f)
+            sys.stderr.write(f"googlesheets_helper: full payload in {out_path}.json\n")
+        except Exception:
+            pass
 
     sys.exit(0 if payload["status"] == "ok" else 1)
 

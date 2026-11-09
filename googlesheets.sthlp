@@ -1,5 +1,5 @@
 {smcl}
-{* *! googlesheets v0.1.6  2026-11-09}{...}
+{* *! googlesheets v0.1.7  2026-11-09}{...}
 {cmd:help googlesheets}{...}
 {viewerjumpto "Syntax"      "googlesheets##syntax"}{...}
 {viewerjumpto "Subcommands" "googlesheets##subcommands"}{...}
@@ -72,8 +72,9 @@
     {cmdab:dom:ain(}{it:A2:A6}{cmd:)} {cmd:series(}{it:B2:B6}|{it:C2:C6}|...{cmd:)}
     [{cmd:names(}{it:"label1|label2|..."}{cmd:)}
      {cmd:colors(}{it:"#1B2D55|#D44500|..."}{cmd:)}
-     {cmd:title(}{it:"..."}{cmd:)}
+     {cmd:title(}{it:"..."}{cmd:)} {cmdab:sub:title(}{it:"..."}{cmd:)}
      {cmd:xlabel(}{it:"..."}{cmd:)} {cmd:ylabel(}{it:"..."}{cmd:)}
+     {cmd:header}
      {cmd:legendpos(}{it:top|right|bottom|left|none|labeled}{cmd:)}   (default {cmd:bottom})
      {cmd:tx2036style}
      {cmd:piehole(}{it:0.5}{cmd:)}
@@ -106,7 +107,9 @@ text.  A string such as {bf:"00123"} keeps its leading zeros, and {bf:"1e5"} or
 {bf:"2026-01-01"} is stored as typed rather than converted to a number or a
 date.  (Each string cell is sent with Sheets' leading-apostrophe "store as
 text" marker, which Sheets does not display.)  Numeric variables with value
-labels are written as their labels, as {cmd:export delimited} does.{p_end}
+labels are written as their labels, as {cmd:export delimited} does.  A
+{cmd:float} variable is written at the precision a float holds: 3.58 is sent
+as 3.58, not as 3.5799999, the digits of its binary value.{p_end}
 
 {phang}{ul:create} makes a new spreadsheet in your Drive.  {cmd:title()} names
 the spreadsheet and {cmd:sheettitle()} names its first tab (default: Sheets'
@@ -114,13 +117,18 @@ own {bf:Sheet1}).  The new id and URL are returned in {cmd:r(id)} and
 {cmd:r(url)}; see {help googlesheets##results:Stored results}.{p_end}
 
 {phang}{ul:addchart} accepts only the {cmd:type()} values listed above (in any
-case); anything else is an error.{p_end}
+case); anything else is an error.  {cmd:subtitle()} adds a line under the
+title, and {cmd:header} tells Sheets that the first row of {cmd:domain()} and
+{cmd:series()} holds labels rather than data.{p_end}
+
+{phang}{ul:format} takes {cmd:range()} with or without a tab name; a range
+that names its own tab ({bf:'Auto'!A1:B2}) is used as given.{p_end}
 
 {phang}Every subcommand accepts these common options:{p_end}
 {p2colset 9 25 27 2}{...}
 {p2col :{cmd:keyfile(}{it:path}{cmd:)}}OAuth Desktop client JSON (overrides {cmd:$GS_CLIENT}){p_end}
 {p2col :{cmd:tokenfile(}{it:path}{cmd:)}}OAuth token cache file (overrides {cmd:$GS_TOKEN}){p_end}
-{p2col :{cmd:verbose}}echo the underlying Python invocation + Sheets API result{p_end}
+{p2col :{cmd:verbose}}echo the underlying Python invocation + Sheets API result; the helper also writes its full reply, with any Python traceback, to a {bf:.json} file next to its result file (the path is printed){p_end}
 {p2colreset}{...}
 
 {marker setup}{...}
@@ -156,16 +164,19 @@ Operating systems, Stata versions and Python handle {bf:~} differently.
 {cmd:googlesheets} expands a leading {bf:~} itself as a safety net, but a full
 path works everywhere.{p_end}
 
-{phang}{ul:Cross-OS form -- auto-detects the Google Drive mount point}{p_end}
-{phang}{cmd}if inlist("`c(os)'", "MacOSX", "Unix") {c -(}{p_end}
+{phang}{ul:macOS form -- finds the Google Drive for desktop folder}{p_end}
+{pstd}On macOS, Google Drive for desktop mounts under
+{bf:~/Library/CloudStorage}.  The lines below find that folder; on Linux or
+Windows (where the Drive letter varies), give the full path instead, as in
+the simple form above.{p_end}
+{phang}{cmd}if "`c(os)'" == "MacOSX" {c -(}{p_end}
 {phang}{cmd}    local _gd_base "/Users/`c(username)'/Library/CloudStorage"{p_end}
 {phang}{cmd}    local _gd_folders : dir "`_gd_base'" dirs "GoogleDrive-*"{p_end}
 {phang}{cmd}    local _gd_folder  : word 1 of `_gd_folders'{p_end}
 {phang}{cmd}    local _gd_folder  = subinstr(`"`_gd_folder'"', `"""', "", .){p_end}
 {phang}{cmd}    local _my_drive   `"`_gd_base'/`_gd_folder'/My Drive"'{p_end}
+{phang}{cmd}    global GS_CLIENT `"`_my_drive'/path/to/client.json"'{p_end}
 {phang}{cmd}{c )-}{p_end}
-{phang}{cmd}else if "`c(os)'" == "Windows" local _my_drive "G:/My Drive"{p_end}
-{phang}{cmd}global GS_CLIENT `"`_my_drive'/path/to/client.json"'{p_end}
 
 {phang}You can also point at a default test Sheet so the shipped
 {bf:test_googlesheets.do} example just runs:{p_end}

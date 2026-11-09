@@ -1,4 +1,9 @@
-*! googlesheets_auth v0.1.2  2026-11-08
+*! googlesheets_auth v0.1.3  2026-11-09
+*! v0.1.3: the Windows default path is built with single separators (it
+*!   showed doubled backslashes); when APPDATA is empty it uses
+*!   USERPROFILE/AppData/Roaming, and when both are empty it stops with a
+*!   message asking for keyfile() or GS_CLIENT instead of guessing
+*!   C:\Users\Default.
 *! v0.1.2: the default client path is built from the home directory directly,
 *!   never written with "~" (handling of "~" varies by OS, Stata version and
 *!   Python).  A "~" a user passes is still expanded here, as a safety net.
@@ -30,7 +35,7 @@ program define googlesheets_auth, rclass
     syntax [, KEYfile(string) TOKENfile(string) ]
 
     * --- locate the OAuth client JSON ----------------------------------
-    if `"`keyfile'"' == "" {
+    if `"`macval(keyfile)'"' == "" {
         if "$GS_CLIENT" != "" {
             local keyfile "$GS_CLIENT"
         }
@@ -38,8 +43,16 @@ program define googlesheets_auth, rclass
             * Platform default.  c(os) returns "MacOSX" / "Unix" / "Windows".
             if lower("`c(os)'") == "windows" {
                 local _home : env APPDATA
-                if "`_home'" == "" local _home "C:\\Users\\Default"
-                local keyfile "`_home'\\stata-googlesheets\\client.json"
+                if `"`_home'"' == "" {
+                    local _up : env USERPROFILE
+                    if `"`_up'"' != "" local _home `"`_up'/AppData/Roaming"'
+                }
+                if `"`_home'"' == "" {
+                    display as error "googlesheets: cannot find the default client JSON folder (APPDATA and USERPROFILE are both empty)."
+                    display as error "  Give keyfile() or set the global GS_CLIENT to the full path of the client JSON."
+                    exit 601
+                }
+                local keyfile `"`_home'/stata-googlesheets/client.json"'
             }
             else {
                 * Built from the home directory itself, not from "~".
@@ -66,7 +79,7 @@ program define googlesheets_auth, rclass
     }
 
     * --- locate (or default) the token cache ----------------------------
-    if `"`tokenfile'"' == "" {
+    if `"`macval(tokenfile)'"' == "" {
         if "$GS_TOKEN" != "" {
             local tokenfile "$GS_TOKEN"
         }
