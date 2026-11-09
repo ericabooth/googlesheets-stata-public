@@ -1,4 +1,6 @@
-*! googlesheets_addchart v0.2.1  2026-11-08
+*! googlesheets_addchart v0.2.2  2026-11-09
+*! v0.2.2: type() is checked; an unknown type (a typo such as "colum") is an
+*!   error (198) instead of being drawn silently as a column chart.
 *! v0.2.1: option spelled TX2036style (TX2036STyle is read as a different name
 *!   by older Stata, so "tx2036style" was rejected there).
 *! Insert a chart object into a Google Sheet via spreadsheets.batchUpdate.
@@ -38,6 +40,13 @@ program define googlesheets_addchart
           WIDTH(integer 540) HEIGHT(integer 360)                       ///
           HEADER                                                       ///
           KEYfile(string) TOKENfile(string) VERBose ]
+
+    local type = lower(strtrim(`"`type'"'))
+    local _types "column bar stacked_column stacked_bar line area scatter pie donut"
+    if !`:list type in _types' {
+        display as error `"googlesheets addchart: type(`type') -- valid: `_types'"'
+        exit 198
+    }
 
     if "`anchor'" == "" local anchor "H1"
     * Map user-supplied legendpos (top|right|bottom|left|none) to the

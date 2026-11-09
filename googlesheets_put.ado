@@ -1,4 +1,7 @@
-*! googlesheets_put v0.1.1  2026-07-31
+*! googlesheets_put v0.1.2  2026-11-09
+*! v0.1.2: a missing value in matrix(), or value(.), is sent as an empty
+*!   string, which blanks the cell.  JSON null, sent before, tells Sheets to
+*!   leave the cell as it was, so an old value stayed in place.
 *! Surgical placement of a single value, formula, or matrix into specific
 *! cells of a Google Sheet.  Modelled on Stata's `putexcel'.
 *!
@@ -76,7 +79,7 @@ program define googlesheets_put
                     }
                     local rows_json `"`rows_json'`_vstr'"'
                 }
-                else local rows_json `"`rows_json'null"'
+                else local rows_json `"`rows_json'"""'
             }
             local rows_json `"`rows_json']"'
         }
@@ -85,10 +88,11 @@ program define googlesheets_put
     }
     else {
         if `"`value'"' != "" {
-            * Validate numeric.  Treat Stata missing (`.') as JSON null;
-            * any other non-numeric input fails confirm and aborts.
-            if `"`value'"' == "." {
-                local rows_json `"[[null]]"'
+            * Validate numeric.  A Stata missing value (. or .a-.z) blanks
+            * the cell (an empty string; JSON null would leave the old value).
+            * Any other non-numeric input fails confirm and aborts.
+            if ustrregexm(`"`value'"', "^\.[a-z]?$") {
+                local rows_json `"[[""]]"'
             }
             else {
                 confirm number `value'

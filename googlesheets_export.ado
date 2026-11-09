@@ -1,4 +1,7 @@
-*! googlesheets_export v0.1.1  2026-11-08
+*! googlesheets_export v0.1.2  2026-11-09
+*! v0.1.2: send the column types to the helper, so a string variable stays
+*!   text in the Sheet ("00123" keeps its leading zeros, "1e5" is not turned
+*!   into 100000).  Numeric variables are still written as numbers.
 *! v0.1.1: export the temporary file with -quote- so a string that contains a
 *!   line break stays one row (it used to split into extra rows in the Sheet).
 *! Export the current Stata dataset to a Google Sheet range.
@@ -38,6 +41,15 @@ program define googlesheets_export
     quietly export delimited using `"`datain'"', delimiter(tab) quote ///
         `=cond("`firstrow'" != "", "", "novarnames")' replace
 
+    * One letter per variable, in dataset order: s = string, n = numeric.
+    * The helper converts only the n columns to numbers.
+    local ctypes ""
+    foreach v of varlist _all {
+        capture confirm string variable `v'
+        local ctypes `"`ctypes'`=cond(_rc, "n", "s")'"'
+    }
+    local hdr = cond("`firstrow'" != "", "true", "false")
+
     _gs_jesc, raw(`"`client_json'"')
     local cj `"`r(escaped)'"'
     _gs_jesc, raw(`"`token_json'"')
@@ -62,6 +74,8 @@ program define googlesheets_export
     file write _h `"  "spreadsheet":"`ss'","' _n
     file write _h `"  "sheet":"`sh'","' _n
     file write _h `"  "range":"`rg'","' _n
+    file write _h `"  "col_types":"`ctypes'","' _n
+    file write _h `"  "header_row":`hdr',"' _n
     file write _h `"  "data_in_path":"`di'""' _n
     file write _h `"}"' _n
     file close _h

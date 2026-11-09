@@ -1,4 +1,8 @@
-*! googlesheets_import v0.1.2  2026-11-08
+*! googlesheets_import v0.1.3  2026-11-09
+*! v0.1.3: without clear, refuse (error 4, "no; data in memory would be
+*!   lost") when data are in memory, as import excel does.  The data in
+*!   memory are no longer dropped before the Sheet is read, so a failed read
+*!   leaves them intact.  Stores r(N), r(k), r(spreadsheet), r(sheet).
 *! v0.1.2: bindquote(strict), so a cell that contains line breaks (a Google
 *!   Form paragraph answer, say) is read as one value, not several rows.
 *! v0.1.1 2026-08-16: escape the output tempfile path into the args JSON
@@ -14,7 +18,8 @@
 *!   sheet(name)    sheet (tab) to read from
 *!   range(A1:Z)    optional cell range (default: all cells on the sheet)
 *!   firstrow       treat the first row as variable names (like `import excel')
-*!   clear          drop current data before importing (like `import excel')
+*!   clear          replace the data in memory (like `import excel'); without
+*!                  it, import refuses when data are in memory
 *!   stringall      force all columns to string (skip Stata's type detection)
 *!   since(col=val) keep only rows where `col' (header name or 0-based int) >= val
 *!   tail(N)        keep only the last N rows (after `since' filter)
@@ -23,13 +28,16 @@
 *! since X" or "the most recent N responses" without dragging the full
 *! Form Responses tab through every refresh.
 
-program define googlesheets_import
+program define googlesheets_import, rclass
     version 17.0
     syntax using/, SHeet(string) [ RANGE(string) FIRSTrow CLEAR STRINGall ///
         SInce(string) TAIL(integer 0) KEYfile(string) TOKENfile(string) VERBose ]
 
-    if "`clear'" != "" {
-        clear
+    * Same rule as import excel: any data in memory (even unchanged data)
+    * need clear.  The data are replaced only after the read succeeds.
+    if "`clear'" == "" & (_N > 0 | c(k) > 0 | c(changed)) {
+        display as error "no; data in memory would be lost"
+        exit 4
     }
 
     googlesheets_auth, keyfile(`"`keyfile'"') tokenfile(`"`tokenfile'"')
@@ -116,4 +124,9 @@ program define googlesheets_import
     if "`since'" != "" display as text "  since:       `since'"
     if `tail'  > 0     display as text "  tail:        `tail'"
     display as text   "  loaded:      `=_N' obs x `=c(k)' vars  (helper reported `nrows' x `ncols')"
+
+    return scalar N = _N
+    return scalar k = c(k)
+    return local spreadsheet `"`using'"'
+    return local sheet       `"`sheet'"'
 end

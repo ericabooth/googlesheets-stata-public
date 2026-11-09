@@ -23,7 +23,7 @@ googlesheets addsheet,    spreadsheet("...") title("New tab")
 | `export` | Write the current dataset to a sheet | `export excel` |
 | `put` | Place one value / formula / matrix at a cell | `putexcel` |
 | `format` | Background colour, font, weight, number format | `putexcel ..., overwritefmt` |
-| `addchart` | Insert a chart object (column / bar / line / area / scatter / pie / donut) | n/a — Sheets-specific |
+| `addchart` | Insert a chart object (column / bar / stacked column / stacked bar / line / area / scatter / pie / donut) | n/a — Sheets-specific |
 | `list` | List the tab names | n/a |
 | `addsheet` / `deletesheet` / `renamesheet` | Tab management | n/a |
 | `ping` | OAuth / API connectivity check | n/a |
@@ -52,7 +52,7 @@ The package uses an **OAuth Desktop client** so calls run as your own Google ide
 
 1. Go to <https://console.cloud.google.com> and create a new project (any name).
 2. **APIs & Services → Library**: enable **Google Sheets API** and **Google Drive API**.
-3. **APIs & Services → OAuth consent screen**: pick **External**, fill the required fields, add yourself (or anyone who will use the package) as a test user, and grant the scopes `https://www.googleapis.com/auth/spreadsheets` and `https://www.googleapis.com/auth/drive`.
+3. **APIs & Services → OAuth consent screen**: pick **External**, fill the required fields, add yourself (or anyone who will use the package) as a test user, and add the scopes the helper asks for: `https://www.googleapis.com/auth/spreadsheets`, `https://www.googleapis.com/auth/drive.file`, and `https://www.googleapis.com/auth/drive.metadata.readonly`.
 4. **APIs & Services → Credentials → Create credentials → OAuth client ID** → Application type **Desktop app** → name it (e.g. "Stata googlesheets") → **Download JSON**.
 
 ### Step 2 — Wire it up (per machine)
@@ -111,7 +111,7 @@ If `$GS_CLIENT` is empty after restart, your `profile.do` isn't being read — s
 
 ### Trade-off
 
-OAuth needs a browser **once per machine**. That's fine for interactive work but blocks cron / scheduled / GitHub Actions runs that have no display. For those cases, swap in a Service Account JSON (same GCP project — **Credentials → Create credentials → Service account**, download JSON, share each target Sheet with the bot's email) and point `$GS_CLIENT` at it. The wrapper auto-detects which auth flow the JSON uses.
+OAuth needs a browser **once per machine**. After that, the cached refresh token lets later runs on the same machine, including batch runs, proceed without a browser. While the OAuth consent screen is in Google's *Testing* status, those refresh tokens expire after about seven days; publishing the consent screen removes that limit. For machines with no display at all (cron servers, GitHub Actions), use a service account: create one in the Google Cloud console, download its JSON key, share the spreadsheet with the service account's e-mail address as an editor, and point `keyfile()` or `$GS_CLIENT` at the key. googlesheets recognizes a service-account key from the file itself and signs in with no browser and no token file.
 
 ## Quick examples
 
@@ -130,7 +130,16 @@ googlesheets import using "..." , sheet("Form Responses 1") firstrow clear ///
     since(Timestamp=2026-01-01)
 ```
 
-`since(column=value)` keeps rows where the named column is `>=` the value. It compares dates and numbers as such rather than as text, so the filter stays correct even when Google returns a timestamp with an unpadded hour (e.g. `2026-07-04 9:00:00`), integers, or string codes.
+`since(column=value)` keeps rows where the named column is `>=` the value. `column` is the header text as it appears in row 1 of the Sheet, or a 0-based column number. When both sides parse as numbers they are compared as numbers, and when both parse as dates or date-times they are compared as date-times; otherwise they are compared as text. The filter therefore stays correct when Google returns a timestamp with an unpadded hour (e.g. `2026-07-04 9:00:00`).
+
+## Behaviour to know about
+
+- **`import` needs `clear` when data are in memory**, as `import excel` does. Without it the command stops with error 4 ("no; data in memory would be lost"). The data in memory are replaced only after the Sheet has been read. With `firstrow`, variable names are lowercased, as `import delimited` does by default (`Timestamp` becomes `timestamp`). `import` stores `r(N)`, `r(k)`, `r(spreadsheet)` and `r(sheet)`.
+- **`export` keeps string variables as text.** Numeric variables are written as numbers; a string variable such as a ZIP code `"00123"` keeps its leading zeros, and `"1e5"` or `"2026-01-01"` is stored as typed. A formula held in a string variable (`=SUM(...)`) is also written as text, not evaluated; use `put ..., formula()` to place a live formula. Numeric variables with value labels are written as their labels.
+- **`put ..., matrix()` writes missing values as blank cells**, clearing whatever was in them. `value(.)` blanks a single cell.
+- **`addchart` checks `type()`**: column, bar, stacked_column, stacked_bar, line, area, scatter, pie or donut. Anything else is an error.
+- **Spreadsheet URLs** may be the plain `.../spreadsheets/d/<id>/edit` form or the multi-account `.../spreadsheets/u/1/d/<id>/edit` form; a bare id works too.
+- **Tab names with apostrophes** (`Bob's data`) can be passed to `sheet()` as they are. `r(sheets)` joins tab names with `|`, so a `|` inside a tab name shows there as a space.
 
 ### Create a fresh spreadsheet from Stata
 

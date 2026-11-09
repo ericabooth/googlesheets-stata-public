@@ -1,4 +1,10 @@
-*! googlesheets v0.1.5  2026-11-08
+*! googlesheets v0.1.6  2026-11-09
+*! v0.1.6: import without clear refuses when data are in memory (error 4,
+*!   as import excel); multi-account URLs (/spreadsheets/u/N/d/<id>) are
+*!   parsed; export keeps string variables as text; put writes a missing
+*!   value as a blank cell; addchart rejects an unknown type(); a tab name
+*!   with an apostrophe is quoted correctly in A1 ranges; a service-account
+*!   key is recognized from the file and signs in with no browser.
 *! Stata wrapper for the Google Sheets API.
 *!
 *! Read, write, and structurally edit Google Sheets from Stata, the way
@@ -17,7 +23,8 @@
 *!     googlesheets addsheet                        , spreadsheet() title()
 *!     googlesheets deletesheet                     , spreadsheet() title()
 *!     googlesheets renamesheet                     , spreadsheet() ...
-*!     googlesheets format                          , spreadsheet() ...
+*!     googlesheets format      using "<id-or-url>" , sheet() range() ...
+*!     googlesheets addchart    using "<id-or-url>" , sheet() type() ...
 *!
 *! Setup: see `help googlesheets##setup'.
 *!
@@ -33,7 +40,7 @@ program define googlesheets
     if "`sub'" == "" {
         display as error "googlesheets: missing subcommand"
         display as error "  Valid: create | import | export | put | format | addchart | list | ping | addsheet"
-        display as error "         | deletesheet | renamesheet | format"
+        display as error "         | deletesheet | renamesheet"
         display as error "  See {bf:help googlesheets}."
         exit 198
     }

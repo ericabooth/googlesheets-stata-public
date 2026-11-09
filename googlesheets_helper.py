@@ -2,6 +2,12 @@
 """
 googlesheets_helper.py -- Python backend for the Stata `googlesheets` package.
 
+v0.1.6 (2026-11-09): spreadsheet URLs of the multi-account form
+/spreadsheets/u/N/d/<id> are parsed; a tab name that contains an apostrophe
+is written as 'Bob''s data' in A1 ranges; export keeps string columns as text
+(the Stata side sends the column types); add_chart rejects an unknown chart
+type instead of drawing a column chart.
+
 Portability (2026-08-16): Windows-safe venv re-exec (blocking child, not
 os.execv) and explicit encoding="utf-8" on every text file, so non-ASCII
 sheet titles and paths round-trip on Windows as they do on macOS/Linux.
@@ -145,13 +151,21 @@ def _ensure_libs(auto_install: bool) -> None:
 
 # -- ID / URL parsing --------------------------------------------------------
 
-_SHEETID_RE = re.compile(r"/spreadsheets/d/([a-zA-Z0-9_-]+)")
+# Matches both .../spreadsheets/d/<id>/... and the multi-account form
+# .../spreadsheets/u/1/d/<id>/... that the browser shows when more than one
+# Google account is signed in.
+_SHEETID_RE = re.compile(r"/spreadsheets/(?:u/\d+/)?d/([a-zA-Z0-9_-]+)")
+# Drive links of the form drive.google.com/open?id=<id>.
+_DRIVEID_RE = re.compile(r"google\.com/.*[?&]id=([a-zA-Z0-9_-]+)")
 
 
 def parse_spreadsheet_id(s: str) -> str:
     """Accept a bare spreadsheet ID or a full URL; return the ID."""
     s = s.strip()
     m = _SHEETID_RE.search(s)
+    if m:
+        return m.group(1)
+    m = _DRIVEID_RE.search(s)
     if m:
         return m.group(1)
     return s
@@ -182,6 +196,19 @@ def get_credentials(client_json: str, token_json: str):
     # back to the passwd database.
     client_json = os.path.expanduser(client_json) if client_json else client_json
     token_json  = os.path.expanduser(token_json)  if token_json  else token_json
+
+    # A service-account key (for scheduled or unattended jobs) is recognised
+    # from the file itself and signs in with no browser and no token cache.
+    # The spreadsheet must be shared with the service account's e-mail.
+    if client_json and Path(client_json).exists():
+        try:
+            with open(client_json, encoding="utf-8") as f:
+                info = json.load(f)
+        except (OSError, ValueError):
+            info = {}
+        if isinstance(info, dict) and info.get("type") == "service_account":
+            from google.oauth2 import service_account
+            return service_account.Credentials.from_service_account_info(info, scopes=SCOPES)
 
     creds = None
     if token_json and Path(token_json).exists():
@@ -289,11 +316,17 @@ def cmd_list_sheets(args, sheets, drive):
     return {"sheets": md["sheets"]}
 
 
+def _quote_sheet(sheet):
+    """Quote a tab name for A1 notation.  An apostrophe inside the name is
+    doubled, as A1 notation requires: Bob's data -> 'Bob''s data'."""
+    return "'" + str(sheet).replace("'", "''") + "'"
+
+
 def _build_range(sheet, rng):
     if sheet and rng:
-        return f"'{sheet}'!{rng}"
+        return f"{_quote_sheet(sheet)}!{rng}"
     if sheet:
-        return f"'{sheet}'"
+        return _quote_sheet(sheet)
     if rng:
         return rng
     raise ValueError("Either sheet() or range() must be supplied.")
@@ -391,24 +424,42 @@ def _read_values_from_args(args):
     if not data_in or not Path(data_in).exists():
         raise ValueError("write/append: provide values[] or data_in_path.")
     import csv
+    # col_types (sent by googlesheets export): one letter per column, "s" for
+    # a Stata string variable and "n" for a numeric one.  Only numeric columns
+    # are turned into numbers.  A string column keeps its text: under
+    # USER_ENTERED a value such as "00123" or "1e5" would otherwise be parsed
+    # by Sheets as a number, so it is sent with a leading apostrophe, which
+    # Sheets treats as "store as text" and does not show.  header_row marks
+    # row 1 as variable names, which are always text.  Without col_types (an
+    # older caller) every numeric-looking cell is converted, as before.
+    col_types  = args.get("col_types")
+    header_row = bool(args.get("header_row"))
+    user_entered = args.get("value_input", "USER_ENTERED") == "USER_ENTERED"
+
+    def _as_text(c):
+        return "'" + c if user_entered else c
+
+    def _as_number(c):
+        try:
+            if "." in c or "e" in c.lower():
+                return float(c)
+            return int(c)
+        except (TypeError, ValueError):
+            return c
+
     rows = []
     with open(data_in, "r", newline="", encoding="utf-8") as f:
-        for row in csv.reader(f, delimiter="\t"):
-            # Convert numeric-looking cells to numbers so the Sheet stores
-            # them as numbers (USER_ENTERED still applies but pre-typed
-            # cells render cleaner).
+        for i, row in enumerate(csv.reader(f, delimiter="\t")):
             out = []
-            for c in row:
+            for j, c in enumerate(row):
                 if c == "":
                     out.append("")
+                elif col_types is None:
+                    out.append(_as_number(c))
+                elif (i == 0 and header_row) or (j < len(col_types) and col_types[j] == "s"):
+                    out.append(_as_text(c))
                 else:
-                    try:
-                        if "." in c or "e" in c.lower():
-                            out.append(float(c))
-                        else:
-                            out.append(int(c))
-                    except (TypeError, ValueError):
-                        out.append(c)
+                    out.append(_as_number(c))
             rows.append(out)
     return rows
 
@@ -530,10 +581,13 @@ def _parse_a1_range(a1):
     """Return (sheetTitle, startCol, startRow, endCol, endRow) -- 0-based,
     end-exclusive.  Used to build GridRange requests.
     """
-    m = re.match(r"^(?:'?([^'!]+)'?!)?([A-Z]+)(\d+)(?::([A-Z]+)(\d+))?$", a1.strip())
+    # The sheet part is either 'quoted' (an apostrophe inside is doubled) or
+    # bare (no apostrophe or "!").
+    m = re.match(r"^(?:(?:'((?:[^']|'')+)'|([^'!]+))!)?([A-Z]+)(\d+)(?::([A-Z]+)(\d+))?$", a1.strip())
     if not m:
         raise ValueError(f"can't parse A1 range: '{a1}'")
-    sheet, c1, r1, c2, r2 = m.groups()
+    qsheet, bsheet, c1, r1, c2, r2 = m.groups()
+    sheet = qsheet.replace("''", "'") if qsheet is not None else bsheet
 
     def col_to_idx(col):
         n = 0
@@ -564,7 +618,7 @@ def cmd_format_range(args, sheets, drive):
     a1 = args["range"]
     if not re.match(r"^.+!", a1):
         if args.get("sheet"):
-            a1 = f"'{args['sheet']}'!{a1}"
+            a1 = f"{_quote_sheet(args['sheet'])}!{a1}"
     sheet_title, sc, sr, ec, er = _parse_a1_range(a1)
     if not sheet_title:
         raise ValueError("format_range requires a sheet name in the range or as sheet()")
@@ -648,6 +702,10 @@ def _parse_grid_range(sheet_id, a1):
     }
 
 
+_CHART_TYPES = ("column", "bar", "stacked_column", "stacked_bar",
+                "line", "area", "scatter", "pie", "donut")
+
+
 def cmd_add_chart(args, sheets, drive):
     """Insert a chart object via spreadsheets.batchUpdate.addChart.
 
@@ -674,6 +732,9 @@ def cmd_add_chart(args, sheets, drive):
     sheet_title    = args["sheet"]
     sid            = _sheet_id_by_title(sheets, spreadsheet_id, sheet_title)
     chart_type     = args.get("chart_type", "column").lower()
+    if chart_type not in _CHART_TYPES:
+        raise ValueError(f"unknown chart type '{chart_type}'.  Valid: "
+                         + " | ".join(_CHART_TYPES))
 
     domain_a1   = args["domain_range"]
     series_a1s  = args.get("series_ranges", [])
@@ -725,7 +786,7 @@ def cmd_add_chart(args, sheets, drive):
             "line":            "LINE",
             "area":            "AREA",
             "scatter":         "SCATTER",
-        }.get(chart_type, "COLUMN")
+        }[chart_type]
         stacked = "STACKED" if chart_type.startswith("stacked_") else "NOT_STACKED"
 
         # Bar charts (horizontal) require series on BOTTOM_AXIS;
